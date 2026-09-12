@@ -8,13 +8,16 @@ import { useCurrency } from '@/context/CurrencyContext';
 import {
   ShoppingBag,
   Heart,
-  Shield,
-  Box,
-  Sparkles,
-  Zap,
+  ShieldCheck,
+  Cpu,
   CheckCircle2,
   Lock,
   Flame,
+  Truck,
+  FileText,
+  Layers,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import MagneticButton from '@/components/animations/MagneticButton';
 
@@ -33,27 +36,41 @@ export default function Configurator({
   selectedScale,
   setSelectedScale,
 }: ConfiguratorProps) {
-  const { addItem } = useCart();
+  const { addItem, openCartDrawer } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { formatPrice } = useCurrency();
 
   const [quantity, setQuantity] = useState(1);
-  const [includeLighting, setIncludeLighting] = useState(false);
-  const [customEngraving, setCustomEngraving] = useState('');
-  const [showEngravingInput, setShowEngravingInput] = useState(false);
+  const [includeThreadedInserts, setIncludeThreadedInserts] = useState(false);
+  const [includeAnnealing, setIncludeAnnealing] = useState(false);
+  const [includeCmmReport, setIncludeCmmReport] = useState(false);
 
-  const matObj = product.materials.find((m) => m.name === selectedMaterial) || product.materials[0];
-  const scaleObj = product.scales.find((s) => s.scale === selectedScale) || product.scales[0];
+  const matObj =
+    product.materials.find((m) => m.name === selectedMaterial) || product.materials[0];
+  const scaleObj =
+    product.scales.find((s) => s.scale === selectedScale) || product.scales[0];
 
-  const lightingCost = includeLighting ? 45 : 0;
-  const engravingCost = showEngravingInput && customEngraving.trim() ? 25 : 0;
+  // Engineering add-on costs in USD base (converted cleanly via CurrencyContext)
+  const insertsCost = includeThreadedInserts ? 4 : 0;
+  const annealingCost = includeAnnealing ? 6 : 0;
+  const cmmCost = includeCmmReport ? 8 : 0;
 
   const baseConfiguredPrice = Math.round(
     product.basePrice * (matObj?.priceMultiplier || 1) * (scaleObj?.priceMultiplier || 1)
   );
 
-  const unitPrice = baseConfiguredPrice + lightingCost + engravingCost;
-  const totalPrice = unitPrice * quantity;
+  const unitPrice = baseConfiguredPrice + insertsCost + annealingCost + cmmCost;
+
+  // Volume discount calculation
+  let volumeDiscountRate = 0;
+  if (quantity >= 6) {
+    volumeDiscountRate = 0.12; // 12% off for 6+ units
+  } else if (quantity >= 3) {
+    volumeDiscountRate = 0.05; // 5% off for 3-5 units
+  }
+
+  const rawTotal = unitPrice * quantity;
+  const totalPrice = Math.round(rawTotal * (1 - volumeDiscountRate));
 
   const isSaved = isInWishlist(product.id);
 
@@ -65,225 +82,310 @@ export default function Configurator({
       category: product.category,
       selectedMaterial,
       selectedScale,
-      customEngraving: showEngravingInput && customEngraving.trim() ? customEngraving.trim() : undefined,
-      includeDisplayLighting: includeLighting,
+      customEngraving: includeThreadedInserts
+        ? 'CNC Brass Inserts (M3/M4)'
+        : undefined,
+      includeDisplayLighting: includeAnnealing,
       unitPrice,
       quantity,
       editionNumber: Math.floor(Math.random() * product.editionSize) + 1,
     });
+    openCartDrawer();
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 sm:p-8 rounded-2xl bg-obsidian-900/90 border border-gold-500/30 backdrop-blur-xl shadow-2xl">
-      {/* Top Header & Live Pricing */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 border border-gold-500/40 text-xs font-mono font-bold tracking-wider uppercase">
-            {product.rarity} EDITION
-          </span>
-          <span className="text-xs font-mono text-titanium-400">
-            {product.stockLeft} Remaining in Batch
+    <div className="flex flex-col gap-6 p-6 sm:p-8 rounded-3xl bg-white border border-neutral-200/90 shadow-[0_4px_24px_rgba(0,0,0,0.03)] select-none">
+      {/* Top Header & Production Telemetry */}
+      <div className="border-b border-neutral-200/80 pb-5">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-[11px] font-mono lowercase font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>queue: {product.stockLeft} units ready in bengaluru farm</span>
+          </div>
+
+          <span className="text-[11px] font-mono lowercase text-neutral-400">
+            part ref: #{product.id.slice(0, 10)}
           </span>
         </div>
 
+        {/* Live INR Price Header */}
         <div className="flex items-baseline gap-3">
-          <span className="text-3xl sm:text-4xl font-display font-bold text-gold-400 font-mono">
+          <span className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-neutral-950">
             {formatPrice(totalPrice)}
           </span>
           {quantity > 1 && (
-            <span className="text-xs text-titanium-400 font-mono">
-              ({formatPrice(unitPrice)} each)
+            <span className="text-xs text-neutral-500 font-mono">
+              ({formatPrice(unitPrice)} / unit)
+            </span>
+          )}
+          {volumeDiscountRate > 0 && (
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-mono font-bold">
+              {Math.round(volumeDiscountRate * 100)}% batch discount applied
             </span>
           )}
         </div>
+
+        <p className="text-[11px] text-neutral-400 font-mono mt-1">
+          inclusive of all taxes • 18% gst b2b tax invoice compliant
+        </p>
       </div>
 
-      {/* 1. Scale Selector */}
+      {/* 1. Engineering Material Selector */}
       <div>
         <div className="flex justify-between items-center mb-2.5">
-          <span className="text-xs font-mono font-bold text-foreground tracking-wider uppercase">
-            1. CHOOSE SCULPTURE SCALE
+          <span className="text-xs font-mono font-bold text-neutral-900 uppercase tracking-wider">
+            1. Select Engineering Material
           </span>
-          <span className="text-xs font-mono text-gold-400 font-bold">{selectedScale}</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          {product.scales.map((s) => (
-            <button
-              key={s.scale}
-              onClick={() => setSelectedScale(s.scale)}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                selectedScale === s.scale
-                  ? 'border-gold-500 bg-gold-500/10 text-gold-200 shadow-gold-glow/20'
-                  : 'border-obsidian-700 bg-obsidian-950/70 text-titanium-400 hover:text-white hover:border-obsidian-600'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-xs text-foreground">{s.scale}</span>
-                <span className="font-mono text-[10px] text-gold-400">
-                  {s.priceMultiplier > 1 ? `+${Math.round((s.priceMultiplier - 1) * 100)}%` : 'Base'}
-                </span>
-              </div>
-              <p className="text-[11px] font-mono text-titanium-400">
-                {s.heightMm}mm H × {s.widthMm}mm W • {s.weightKg} kg
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 2. Material Finish Selector */}
-      <div>
-        <div className="flex justify-between items-center mb-2.5">
-          <span className="text-xs font-mono font-bold text-foreground tracking-wider uppercase">
-            2. PHOTOPOLYMER MATERIAL FINISH
+          <span className="text-xs font-mono text-neutral-500 font-semibold lowercase">
+            {selectedMaterial}
           </span>
-          <span className="text-xs font-mono text-gold-400 font-bold">{selectedMaterial}</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {product.materials.map((mat) => (
-            <button
-              key={mat.name}
-              onClick={() => setSelectedMaterial(mat.name)}
-              className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                selectedMaterial === mat.name
-                  ? 'border-gold-500 bg-gold-500/10 text-gold-200 shadow-gold-glow/20'
-                  : 'border-obsidian-700 bg-obsidian-950/70 text-titanium-400 hover:text-white hover:border-obsidian-600'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1.5">
-                <span
-                  className="w-3.5 h-3.5 rounded-full border border-obsidian-600 shadow-sm flex-shrink-0"
-                  style={{ backgroundColor: mat.color }}
-                />
-                <span className="font-semibold text-xs text-foreground leading-tight">
-                  {mat.name}
-                </span>
-              </div>
-              <p className="text-[11px] text-titanium-400 leading-normal line-clamp-2">
-                {mat.description}
-              </p>
-            </button>
-          ))}
+          {product.materials.map((mat) => {
+            const isSelected = selectedMaterial === mat.name;
+            return (
+              <button
+                key={mat.name}
+                onClick={() => setSelectedMaterial(mat.name)}
+                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                  isSelected
+                    ? 'border-neutral-950 bg-neutral-900 text-white shadow-sm ring-1 ring-neutral-950'
+                    : 'border-neutral-200/90 bg-neutral-50/50 hover:bg-neutral-100/60 text-neutral-700 hover:border-neutral-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5 w-full">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border shadow-2xs flex-shrink-0"
+                      style={{
+                        backgroundColor: mat.color,
+                        borderColor: isSelected ? '#ffffff40' : '#00000020',
+                      }}
+                    />
+                    <span
+                      className={`font-semibold text-xs truncate ${
+                        isSelected ? 'text-white' : 'text-neutral-900'
+                      }`}
+                    >
+                      {mat.name}
+                    </span>
+                  </div>
+                  <span
+                    className={`font-mono text-[10px] ml-1.5 flex-shrink-0 ${
+                      isSelected ? 'text-amber-400' : 'text-neutral-500'
+                    }`}
+                  >
+                    {mat.priceMultiplier > 1
+                      ? `+${Math.round((mat.priceMultiplier - 1) * 100)}%`
+                      : 'base'}
+                  </span>
+                </div>
+
+                <p
+                  className={`text-[10px] leading-relaxed line-clamp-2 ${
+                    isSelected ? 'text-neutral-300' : 'text-neutral-500'
+                  }`}
+                >
+                  {mat.description}
+                </p>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 3. Luxury Add-ons (LED base + Custom Plaque) */}
-      <div className="space-y-2.5 pt-2 border-t border-obsidian-800">
-        <span className="text-xs font-mono font-bold text-foreground tracking-wider uppercase block mb-1">
-          3. ARTISAN BESPOKE ADD-ONS
+      {/* 2. Scale & Envelope Selector */}
+      <div>
+        <div className="flex justify-between items-center mb-2.5">
+          <span className="text-xs font-mono font-bold text-neutral-900 uppercase tracking-wider">
+            2. Production Scale Envelope
+          </span>
+          <span className="text-xs font-mono text-neutral-500 font-semibold lowercase">
+            {selectedScale}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          {product.scales.map((s) => {
+            const isSelected = selectedScale === s.scale;
+            return (
+              <button
+                key={s.scale}
+                onClick={() => setSelectedScale(s.scale)}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  isSelected
+                    ? 'border-neutral-950 bg-neutral-900 text-white shadow-sm ring-1 ring-neutral-950'
+                    : 'border-neutral-200/90 bg-neutral-50/50 hover:bg-neutral-100/60 text-neutral-700 hover:border-neutral-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className={`font-semibold text-xs ${
+                      isSelected ? 'text-white' : 'text-neutral-900'
+                    }`}
+                  >
+                    {s.scale}
+                  </span>
+                  <span
+                    className={`font-mono text-[10px] ${
+                      isSelected ? 'text-amber-400' : 'text-neutral-500'
+                    }`}
+                  >
+                    {s.priceMultiplier > 1
+                      ? `+${Math.round((s.priceMultiplier - 1) * 100)}%`
+                      : 'standard'}
+                  </span>
+                </div>
+                <p
+                  className={`text-[10px] font-mono ${
+                    isSelected ? 'text-neutral-300' : 'text-neutral-500'
+                  }`}
+                >
+                  {s.heightMm}×{s.widthMm}×{s.depthMm} mm • {s.weightKg} kg
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Industrial Add-ons & Secondary Operations */}
+      <div className="space-y-2.5 pt-4 border-t border-neutral-200/80">
+        <span className="text-xs font-mono font-bold text-neutral-900 uppercase tracking-wider block mb-1">
+          3. Secondary Machine Operations
         </span>
 
-        {/* LED Base Lighting */}
-        <label className="flex items-center gap-3 p-3 rounded-xl bg-obsidian-950/70 border border-obsidian-700 cursor-pointer hover:border-gold-500/40 transition-colors">
+        {/* Brass Threaded Inserts */}
+        <label className="flex items-center gap-3 p-3 rounded-2xl bg-neutral-50/70 border border-neutral-200 cursor-pointer hover:bg-neutral-100/60 transition-colors">
           <input
             type="checkbox"
-            checked={includeLighting}
-            onChange={(e) => setIncludeLighting(e.target.checked)}
-            className="rounded border-obsidian-700 text-gold-500 focus:ring-gold-500/20"
+            checked={includeThreadedInserts}
+            onChange={(e) => setIncludeThreadedInserts(e.target.checked)}
+            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
           />
           <div className="flex-1 text-xs">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-gold-400" />
-                Integrated Base Underglow Lighting (USB-C)
+              <span className="font-semibold text-neutral-900 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-neutral-700" />
+                M3/M4 Brass Threaded Heat-Set Inserts
               </span>
-              <span className="font-mono text-gold-400 font-bold">+{formatPrice(45)}</span>
+              <span className="font-mono text-neutral-900 font-bold">
+                +{formatPrice(4)}
+              </span>
             </div>
-            <p className="text-[11px] text-titanium-400 mt-0.5">
-              Hidden diffuse LED array highlighting runic base contours.
+            <p className="text-[11px] text-neutral-500 mt-0.5">
+              Heat-staked knurled brass inserts for heavy dynamic machine mounting.
             </p>
           </div>
         </label>
 
-        {/* Custom Plaque Engraving */}
-        <div className="p-3 rounded-xl bg-obsidian-950/70 border border-obsidian-700">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showEngravingInput}
-              onChange={(e) => setShowEngravingInput(e.target.checked)}
-              className="rounded border-obsidian-700 text-gold-500 focus:ring-gold-500/20"
-            />
-            <div className="flex-1 text-xs flex items-center justify-between">
-              <span className="font-semibold text-foreground">
-                Custom Brass Nameplate Laser Engraving
+        {/* Thermal Stress Annealing */}
+        <label className="flex items-center gap-3 p-3 rounded-2xl bg-neutral-50/70 border border-neutral-200 cursor-pointer hover:bg-neutral-100/60 transition-colors">
+          <input
+            type="checkbox"
+            checked={includeAnnealing}
+            onChange={(e) => setIncludeAnnealing(e.target.checked)}
+            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+          />
+          <div className="flex-1 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-neutral-900 flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5 text-amber-600" />
+                Thermal Stress-Relief Annealing Cycle
               </span>
-              <span className="font-mono text-gold-400 font-bold">+{formatPrice(25)}</span>
+              <span className="font-mono text-neutral-900 font-bold">
+                +{formatPrice(6)}
+              </span>
             </div>
-          </label>
+            <p className="text-[11px] text-neutral-500 mt-0.5">
+              Controlled ramp-down oven cycle to boost HDT by 15°C and eliminate internal stresses.
+            </p>
+          </div>
+        </label>
 
-          {showEngravingInput && (
-            <div className="mt-3 pt-3 border-t border-obsidian-800">
-              <input
-                type="text"
-                maxLength={36}
-                placeholder="e.g. 'Collector Name - Vault Edition'"
-                value={customEngraving}
-                onChange={(e) => setCustomEngraving(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-obsidian-900 border border-obsidian-700 rounded-lg text-foreground placeholder-titanium-500 focus:outline-none focus:border-gold-500/50 font-mono uppercase"
-              />
-              <p className="text-[10px] text-titanium-500 mt-1 font-mono">
-                Laser-etched into solid brushed brass nameplate. Max 36 characters.
-              </p>
+        {/* CMM Metrology Verification */}
+        <label className="flex items-center gap-3 p-3 rounded-2xl bg-neutral-50/70 border border-neutral-200 cursor-pointer hover:bg-neutral-100/60 transition-colors">
+          <input
+            type="checkbox"
+            checked={includeCmmReport}
+            onChange={(e) => setIncludeCmmReport(e.target.checked)}
+            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+          />
+          <div className="flex-1 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-neutral-900 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                Mitutoyo CMM Calibration Certificate
+              </span>
+              <span className="font-mono text-neutral-900 font-bold">
+                +{formatPrice(8)}
+              </span>
             </div>
-          )}
-        </div>
+            <p className="text-[11px] text-neutral-500 mt-0.5">
+              Physical report certifying dimensional compliance to ISO 2768-m.
+            </p>
+          </div>
+        </label>
       </div>
 
-      {/* Quantity & CTA Button */}
-      <div className="pt-4 border-t border-obsidian-800 space-y-3">
+      {/* 4. Quantity Stepper & Add To Cart CTA */}
+      <div className="pt-4 border-t border-neutral-200/80 space-y-3">
         <div className="flex items-center gap-3">
-          {/* Quantity selector */}
-          <div className="flex items-center bg-obsidian-950 border border-obsidian-700 rounded-xl px-3 py-2.5">
+          {/* Quantity Stepper */}
+          <div className="flex items-center bg-neutral-100 border border-neutral-200 rounded-2xl px-3 py-2.5">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="text-titanium-400 hover:text-white font-mono px-2 text-sm"
+              className="text-neutral-500 hover:text-neutral-900 font-mono px-2 text-base font-bold transition-colors"
             >
               -
             </button>
-            <span className="font-mono font-bold text-sm px-2 text-foreground">{quantity}</span>
+            <span className="font-mono font-bold text-sm px-3 text-neutral-900">
+              {quantity}
+            </span>
             <button
-              onClick={() => setQuantity(Math.min(5, quantity + 1))}
-              className="text-titanium-400 hover:text-white font-mono px-2 text-sm"
+              onClick={() => setQuantity(Math.min(25, quantity + 1))}
+              className="text-neutral-500 hover:text-neutral-900 font-mono px-2 text-base font-bold transition-colors"
             >
               +
             </button>
           </div>
 
-          {/* Add to Cart Button */}
+          {/* Primary CTA Button */}
           <MagneticButton className="flex-1">
             <button
               onClick={handleAddToCart}
-              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-gold-500 via-amber-400 to-gold-500 text-obsidian-950 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 shadow-gold-glow transition-all"
+              className="w-full py-3.5 px-6 rounded-2xl bg-neutral-950 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-neutral-800 shadow-md transition-all active:scale-98"
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>Acquire Sculpture ({formatPrice(totalPrice)})</span>
+              <span>Dispatch to 3D Print Queue ({formatPrice(totalPrice)})</span>
             </button>
           </MagneticButton>
 
           {/* Wishlist Button */}
           <button
             onClick={() => toggleWishlist(product.id, product.name)}
-            className={`p-3.5 rounded-xl border transition-colors ${
+            className={`p-3.5 rounded-2xl border transition-colors ${
               isSaved
-                ? 'bg-gold-500/20 border-gold-400 text-gold-300'
-                : 'bg-obsidian-950 border-obsidian-700 text-titanium-400 hover:text-white hover:border-gold-500/40'
+                ? 'bg-neutral-950 border-neutral-950 text-white'
+                : 'bg-white border-neutral-200 text-neutral-600 hover:text-neutral-950 hover:border-neutral-400'
             }`}
             title={isSaved ? 'Saved in Vault' : 'Save to Vault'}
           >
-            <Heart className={`w-5 h-5 ${isSaved ? 'fill-gold-400 text-gold-400' : ''}`} />
+            <Heart className={`w-5 h-5 ${isSaved ? 'fill-white' : ''}`} />
           </button>
         </div>
 
-        {/* Security & Authenticity badge */}
-        <div className="p-3 rounded-xl bg-obsidian-950/60 border border-obsidian-800 flex items-center justify-between text-[11px] text-titanium-400 font-mono">
+        {/* Pan-India Trust Guarantees */}
+        <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-neutral-500 font-mono gap-2">
           <span className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-gold-400" />
-            Serialized Metal NFC Certificate
+            <Truck className="w-3.5 h-3.5 text-neutral-700" />
+            BlueDart Air Dispatch (24-48 hrs)
           </span>
-          <span className="text-gold-400">Laser-Cut Flight Case</span>
+          <span className="flex items-center gap-1.5 text-neutral-700 font-semibold">
+            <FileText className="w-3.5 h-3.5 text-emerald-600" />
+            GST B2B Tax Invoice Compliant
+          </span>
         </div>
       </div>
     </div>

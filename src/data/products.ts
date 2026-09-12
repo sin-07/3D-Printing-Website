@@ -130,8 +130,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-1',
-        author: 'Dr. Marcus Vance',
-        location: 'Munich, Germany',
+        author: 'Dr. Arvind Sharma',
+        location: 'Bengaluru, Karnataka',
         rating: 5,
         date: '3 days ago',
         title: 'Zero backlash and incredible layer adhesion',
@@ -141,8 +141,8 @@ export const PRODUCTS: Product[] = [
       },
       {
         id: 'rev-2',
-        author: 'Julian Thorne',
-        location: 'Austin, TX',
+        author: 'Rohan Singhania',
+        location: 'Pune, Maharashtra',
         rating: 5,
         date: '2 weeks ago',
         title: 'The gold standard for additive engineering',
@@ -206,8 +206,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-3',
-        author: 'Elena Rostova',
-        location: 'Stockholm, Sweden',
+        author: 'Pooja Deshmukh',
+        location: 'Hyderabad, Telangana',
         rating: 5,
         date: '1 week ago',
         title: 'Weighs 48 grams yet stiff as aluminum',
@@ -270,8 +270,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-4',
-        author: 'Kenji Takahashi',
-        location: 'Osaka, Japan',
+        author: 'Vikramaditya Nair',
+        location: 'Chennai, Tamil Nadu',
         rating: 5,
         date: '3 weeks ago',
         title: 'Perfect balance at high RPMs',
@@ -334,8 +334,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-5',
-        author: 'Sarah Chen',
-        location: 'San Jose, CA',
+        author: 'Neha Kulkarni',
+        location: 'Bengaluru, Karnataka',
         rating: 5,
         date: '5 days ago',
         title: 'Seamlessly picks fruit, eggs, and bolts',
@@ -396,8 +396,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-6',
-        author: 'Liam O’Connor',
-        location: 'Dublin, Ireland',
+        author: 'Aditya Varma',
+        location: 'Gurugram, Haryana',
         rating: 5,
         date: '2 weeks ago',
         title: 'Overhangs look injection molded now',
@@ -457,8 +457,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-7',
-        author: 'Prof. David Klein',
-        location: 'Zurich, Switzerland',
+        author: 'Prof. Rajeshwari Sen',
+        location: 'IISc Bengaluru, Karnataka',
         rating: 5,
         date: '1 month ago',
         title: 'Remarkable sub-micron stability',
@@ -517,8 +517,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-8',
-        author: 'Travis Reed',
-        location: 'Detroit, MI',
+        author: 'Karthik Sundaram',
+        location: 'Coimbatore, Tamil Nadu',
         rating: 5,
         date: '3 weeks ago',
         title: 'Holds tight without marking polished parts',
@@ -575,8 +575,8 @@ export const PRODUCTS: Product[] = [
     reviews: [
       {
         id: 'rev-9',
-        author: 'Alexandre Meyer',
-        location: 'Paris, France',
+        author: 'Ananya Iyer',
+        location: 'Mumbai, Maharashtra',
         rating: 5,
         date: '4 days ago',
         title: 'Uploaded at 9am, shipped the next morning',
