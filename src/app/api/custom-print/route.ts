@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       slicingParams,
       calculations,
       customerDetails,
+      cloudinaryUrl,
     } = body;
 
     const quoteId = `ATH-CAD-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
         sizeMb: fileSizeMb || 0,
         dimensionsMm: dimensionsMm || { width: 0, height: 0, depth: 0 },
         triangleCount: triangleCount || 0,
+        cloudinaryUrl: cloudinaryUrl || '',
       },
       slicingParams: {
         scalePercentage: slicingParams?.scalePercentage || 100,

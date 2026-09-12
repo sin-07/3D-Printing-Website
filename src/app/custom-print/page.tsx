@@ -27,6 +27,8 @@ import {
   Receipt,
   Check,
   Zap,
+  Cloud,
+  Loader2,
 } from 'lucide-react';
 
 interface EngineeringMaterial {
@@ -179,6 +181,10 @@ export default function CustomPrintStudio() {
   const [gstin, setGstin] = useState('');
   const [companyName, setCompanyName] = useState('');
 
+  // Cloudinary CDN archive state
+  const [cloudinaryUrl, setCloudinaryUrl] = useState<string>('');
+  const [isUploadingCloudinary, setIsUploadingCloudinary] = useState<boolean>(false);
+
   // Slicing Calculations
   const calculations = useMemo(() => {
     const scaleFactor = scalePercentage / 100;
@@ -297,6 +303,35 @@ export default function CustomPrintStudio() {
     });
     setBaseVolumeCm3(simulatedVol);
     showToast('CAD File Accepted', `Calculated volume: ${simulatedVol} cm³`, 'success');
+
+    // Asynchronously archive uploaded CAD file to Cloudinary CDN
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', uploaded);
+      uploadFormData.append('folder', 'aetheris_cad');
+      uploadFormData.append('tag', 'cad_slicer_upload');
+
+      setIsUploadingCloudinary(true);
+      fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.secure_url) {
+            setCloudinaryUrl(data.secure_url);
+            showToast(
+              'Synced to Cloudinary CDN',
+              `Archived to global CDN: ${uploaded.name}`,
+              'success'
+            );
+          }
+        })
+        .catch((err) => console.warn('Cloudinary upload warning:', err))
+        .finally(() => setIsUploadingCloudinary(false));
+    } catch (e) {
+      console.warn('Upload initiation error:', e);
+    }
   };
 
   const handleAddToCart = async () => {
@@ -310,6 +345,7 @@ export default function CustomPrintStudio() {
           fileSizeMb: file.sizeMb,
           dimensionsMm: file.dimensionsMm,
           triangleCount: file.triangleCount,
+          cloudinaryUrl,
           slicingParams: {
             scalePercentage,
             material: selectedMaterial.name,
@@ -344,7 +380,7 @@ export default function CustomPrintStudio() {
       category: 'Rapid Prototyping',
       selectedMaterial: selectedMaterial.name as any,
       selectedScale: '1:1 True Scale',
-      customEngraving: `Scale: ${scalePercentage}%, Layer: ${layerHeight}mm, Infill: ${infillDensity}% ${infillPattern}${isGstClaim && gstin ? ` | GSTIN: ${gstin}` : ''}`,
+      customEngraving: `Scale: ${scalePercentage}%, Layer: ${layerHeight}mm, Infill: ${infillDensity}% ${infillPattern}${isGstClaim && gstin ? ` | GSTIN: ${gstin}` : ''}${cloudinaryUrl ? ' | CDN Stored' : ''}`,
       unitPrice: calculations.totalCalculatedCost,
       quantity: 1,
     });
@@ -474,9 +510,33 @@ export default function CustomPrintStudio() {
                       </p>
                     </div>
                   </div>
-                  <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-mono font-medium border border-emerald-200 lowercase">
-                    manifold geometry passed
-                  </span>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {isUploadingCloudinary ? (
+                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-mono border border-amber-200 animate-pulse">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>syncing cdn...</span>
+                      </span>
+                    ) : cloudinaryUrl ? (
+                      <a
+                        href={cloudinaryUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-50 text-cyan-800 hover:bg-cyan-100 text-[11px] font-mono border border-cyan-200 transition-colors"
+                        title="View raw binary on Cloudinary Global CDN"
+                      >
+                        <Cloud className="w-3 h-3 text-cyan-600" />
+                        <span>cdn archived</span>
+                      </a>
+                    ) : (
+                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 text-neutral-600 text-[11px] font-mono border border-neutral-200">
+                        <Cloud className="w-3 h-3 text-neutral-400" />
+                        <span>local cache</span>
+                      </span>
+                    )}
+                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-mono font-medium border border-emerald-200 lowercase">
+                      manifold passed
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

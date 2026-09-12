@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",
+    "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "gsap": "^3.12.5",
     "lenis": "^1.1.9",
