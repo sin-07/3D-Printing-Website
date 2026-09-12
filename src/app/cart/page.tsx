@@ -96,12 +96,12 @@ export default function CartPage() {
                 {remainingForFreeShipping > 0 ? (
                   <p className="text-titanium-300">
                     Add <span className="text-gold-400 font-bold">{formatPrice(remainingForFreeShipping)}</span> more for{' '}
-                    <span className="text-gold-400 font-semibold">Free Insured Global White-Glove Air Freight</span>
+                    <span className="text-gold-400 font-semibold">Free Pan-India Priority Air Dispatch (BlueDart / Delhivery)</span>
                   </p>
                 ) : (
                   <p className="text-emerald-400 font-medium flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4" />
-                    Unlocked: Free Worldwide Insured Flight-Case Freight
+                    Unlocked: Free Pan-India Insured Express Air Dispatch (19,000+ PIN Codes)
                   </p>
                 )}
                 <div className="w-full h-2 bg-obsidian-950 rounded-full mt-2 overflow-hidden">
@@ -212,8 +212,8 @@ export default function CartPage() {
                   />
                   <div className="flex-1 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">Handmade Pine Display Crate</span>
-                      <span className="font-mono text-gold-400 font-bold">+$65</span>
+                      <span className="font-semibold text-foreground">Flight-Ready CNC Protective Crate</span>
+                      <span className="font-mono text-gold-400 font-bold">+{formatPrice(crateUpgradeCost)}</span>
                     </div>
                     <p className="text-[10px] text-titanium-400 mt-0.5">
                       Includes brass hardware latches & laser-cut custom EVA foam nesting.
@@ -267,14 +267,14 @@ export default function CartPage() {
                   )}
                   {isCrateUpgrade && (
                     <div className="flex justify-between text-gold-400">
-                      <span>Pine Display Crate</span>
+                      <span>Protective Crate</span>
                       <span>+{formatPrice(crateUpgradeCost)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-titanium-400">
-                    <span>Worldwide Insured Transit</span>
+                    <span>Pan-India Express Air Dispatch</span>
                     <span className="text-emerald-400">
-                      {remainingForFreeShipping === 0 ? 'Complimentary' : formatPrice(45)}
+                      {remainingForFreeShipping === 0 ? 'Complimentary' : formatPrice(25)}
                     </span>
                   </div>
                   <div className="flex justify-between text-base font-bold text-foreground pt-3 border-t border-obsidian-800">

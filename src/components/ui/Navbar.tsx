@@ -50,7 +50,7 @@ export default function Navbar({ onOpenSearch }: NavbarProps) {
     { name: 'cad upload', href: '/custom-print' },
   ];
 
-  const currencies: Currency[] = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
+  const currencies: Currency[] = ['INR', 'USD', 'EUR', 'GBP'];
 
   return (
     <header

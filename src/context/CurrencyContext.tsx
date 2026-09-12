@@ -13,12 +13,15 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [currency, setCurrencyState] = useState<Currency>('USD');
+  const [currency, setCurrencyState] = useState<Currency>('INR');
 
   useEffect(() => {
     const saved = localStorage.getItem('aetheris_currency') as Currency;
-    if (saved && ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'].includes(saved)) {
+    if (saved && ['INR', 'USD', 'EUR', 'GBP'].includes(saved)) {
       setCurrencyState(saved);
+    } else {
+      setCurrencyState('INR');
+      localStorage.setItem('aetheris_currency', 'INR');
     }
   }, []);
 

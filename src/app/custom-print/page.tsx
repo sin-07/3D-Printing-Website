@@ -22,6 +22,11 @@ import {
   Wrench,
   ArrowRight,
   Activity,
+  Truck,
+  MapPin,
+  Receipt,
+  Check,
+  Zap,
 } from 'lucide-react';
 
 interface EngineeringMaterial {
@@ -109,7 +114,7 @@ const ENGINEERING_FINISHES: EngineeringFinish[] = [
     id: 'brass-inserts',
     name: 'M3/M4 Brass Heat-Set Threaded Inserts (x4)',
     cost: 16,
-    description: 'Pre-installed knurled brass brass inserts heat-staked into mounting bosses for high-torque mechanical fastening.',
+    description: 'Pre-installed knurled brass inserts heat-staked into mounting bosses for high-torque mechanical fastening.',
   },
   {
     id: 'annealed',
@@ -148,35 +153,44 @@ export default function CustomPrintStudio() {
     name: 'planetary_gearbox_v4.step',
     sizeMb: 18.4,
     dimensionsMm: { width: 115, height: 58, depth: 115 },
-    triangleCount: 42800,
+    triangleCount: 28420,
   });
 
-  const [baseVolumeCm3, setBaseVolumeCm3] = useState<number>(125);
+  // Base raw volume before scaling (in cm³)
+  const [baseVolumeCm3, setBaseVolumeCm3] = useState<number>(112);
+
+  // Slicing parameters
   const [scalePercentage, setScalePercentage] = useState<number>(100);
+  const [selectedMaterial, setSelectedMaterial] = useState<EngineeringMaterial>(
+    ENGINEERING_MATERIALS[0]
+  );
   const [layerHeight, setLayerHeight] = useState<number>(0.12);
   const [infillDensity, setInfillDensity] = useState<number>(45);
   const [infillPattern, setInfillPattern] = useState<'gyroid' | 'honeycomb' | 'grid'>('gyroid');
   const [wallLoops, setWallLoops] = useState<number>(4);
-  const [toleranceGrade, setToleranceGrade] = useState<'standard' | 'precision' | 'press-fit'>('precision');
-
-  const [selectedMaterial, setSelectedMaterial] = useState<EngineeringMaterial>(
-    ENGINEERING_MATERIALS[0]
-  );
-  const [selectedFinish, setSelectedFinish] = useState<EngineeringFinish>(
-    ENGINEERING_FINISHES[0]
+  const [selectedFinish, setSelectedFinish] = useState<EngineeringFinish>(ENGINEERING_FINISHES[0]);
+  const [toleranceGrade, setToleranceGrade] = useState<'standard' | 'precision' | 'press-fit'>(
+    'precision'
   );
 
-  // Real 3D printing logic calculations
+  // Indian localization states: PIN code checker & B2B GST
+  const [pincode, setPincode] = useState('560001');
+  const [isGstClaim, setIsGstClaim] = useState(false);
+  const [gstin, setGstin] = useState('');
+  const [companyName, setCompanyName] = useState('');
+
+  // Slicing Calculations
   const calculations = useMemo(() => {
-    const scaleMultiplier = Math.pow(scalePercentage / 100, 3);
-    const scaledVolume = baseVolumeCm3 * scaleMultiplier;
+    const scaleFactor = scalePercentage / 100;
+    const scaledVolume = baseVolumeCm3 * Math.pow(scaleFactor, 3);
 
-    // Shell fraction vs Infill fraction
-    const shellFraction = Math.min(0.65, wallLoops * 0.08);
-    const effectiveInfillFraction = shellFraction + (1 - shellFraction) * (infillDensity / 100);
-    const netVolumeCm3 = scaledVolume * effectiveInfillFraction;
+    // Shell vs Infill Volume Partition
+    const shellFraction = Math.min(0.7, 0.2 + (wallLoops * 0.05));
+    const coreFraction = 1 - shellFraction;
+    const infillFraction = (infillDensity / 100) * coreFraction;
+    const netVolumeCm3 = scaledVolume * (shellFraction + infillFraction);
 
-    // Mass in grams
+    // Mass in grams = volume * density
     const massGrams = Math.round(netVolumeCm3 * selectedMaterial.density);
 
     // Spool length in meters (1.75mm diameter filament)
@@ -198,7 +212,7 @@ export default function CustomPrintStudio() {
     const tensileFactor = (infillDensity / 100) * 0.55 + (wallLoops / 6) * 0.45;
     const tensileYieldMPa = Math.round(selectedMaterial.baseTensileMPa * tensileFactor);
 
-    // Cost Breakdown
+    // Cost Breakdown in base currency
     const materialCost = netVolumeCm3 * selectedMaterial.pricePerCm3;
     const machineHours = totalSec / 3600;
     const machineDepreciation = machineHours * 3.8;
@@ -242,11 +256,11 @@ export default function CustomPrintStudio() {
 
     const sizeMb = Number((uploaded.size / (1024 * 1024)).toFixed(1));
 
-    // If it is an STL file, parse real geometry client-side
     if (uploaded.name.toLowerCase().endsWith('.stl')) {
       try {
         const buffer = await uploaded.arrayBuffer();
         const parsed = parseSTLGeometry(buffer);
+
         setFile({
           name: uploaded.name,
           sizeMb,
@@ -293,7 +307,7 @@ export default function CustomPrintStudio() {
       category: 'Rapid Prototyping',
       selectedMaterial: selectedMaterial.name as any,
       selectedScale: '1:1 True Scale',
-      customEngraving: `Scale: ${scalePercentage}%, Layer: ${layerHeight}mm, Infill: ${infillDensity}% ${infillPattern}`,
+      customEngraving: `Scale: ${scalePercentage}%, Layer: ${layerHeight}mm, Infill: ${infillDensity}% ${infillPattern}${isGstClaim && gstin ? ` | GSTIN: ${gstin}` : ''}`,
       unitPrice: calculations.totalCalculatedCost,
       quantity: 1,
     });
@@ -305,22 +319,38 @@ export default function CustomPrintStudio() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white pt-28 pb-24 select-none">
+    <div className="min-h-screen bg-white text-black pt-28 pb-24">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-        {/* Page Header (makewithloop.com style) */}
-        <div className="max-w-3xl mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-mono lowercase text-neutral-300 mb-4">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>direct-to-print cad laboratory</span>
+        {/* Page Header (makewithloop.com style, pure white) */}
+        <div className="max-w-3xl mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-xs font-mono lowercase text-neutral-700 mb-4">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>🇮🇳 direct-to-print cad laboratory · pan-india hubs</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-[-0.04em] lowercase text-white leading-none">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-[-0.04em] lowercase text-black leading-none">
             custom 3d print &amp; slicing lab.
           </h1>
 
-          <p className="mt-4 text-base sm:text-lg text-neutral-400 font-normal lowercase leading-relaxed max-w-2xl">
-            upload your custom 3D model (.stl, .step, .obj, .3mf) for automated geometry analysis, thermoplastic composite selection, and instant g-code manufacturing quote.
+          <p className="mt-4 text-base sm:text-lg text-neutral-600 font-normal lowercase leading-relaxed max-w-2xl">
+            upload your custom 3D model (.stl, .step, .obj, .3mf) for automated geometry analysis, thermoplastic composite selection, and instant g-code manufacturing quote with pan-india express dispatch.
           </p>
+
+          {/* India Advantage Badges */}
+          <div className="flex flex-wrap items-center gap-2.5 mt-6">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-50 border border-neutral-200 text-[11px] font-mono lowercase text-neutral-700">
+              <Truck className="w-3.5 h-3.5 text-neutral-800" />
+              <span>pan-india express (bluedart / delhivery / dtdc)</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-50 border border-neutral-200 text-[11px] font-mono lowercase text-neutral-700">
+              <Receipt className="w-3.5 h-3.5 text-neutral-800" />
+              <span>18% gst b2b invoice compliant (hsn 8477 / 3926)</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-50 border border-neutral-200 text-[11px] font-mono lowercase text-neutral-700">
+              <Zap className="w-3.5 h-3.5 text-neutral-800" />
+              <span>upi, gpay, phonepe &amp; netbanking accepted</span>
+            </span>
+          </div>
         </div>
 
         {/* Studio Workspace Layout */}
@@ -328,9 +358,9 @@ export default function CustomPrintStudio() {
           {/* Left Column: File Upload & Slicing Parameters */}
           <div className="lg:col-span-7 space-y-8">
             {/* 1. Drag & Drop File Uploader */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-4 shadow-sm">
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-50 border border-neutral-200 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest">
+                <span className="text-xs font-mono text-neutral-600 lowercase tracking-widest font-semibold">
                   [01] upload cad geometry
                 </span>
                 <span className="text-[11px] font-mono text-neutral-500">
@@ -341,7 +371,7 @@ export default function CustomPrintStudio() {
               {/* Upload Drop Zone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-neutral-700 hover:border-white rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all bg-neutral-950/60 hover:bg-neutral-900/60 flex flex-col items-center justify-center gap-3 group"
+                className="border-2 border-dashed border-neutral-300 hover:border-black rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all bg-white hover:bg-neutral-100/60 flex flex-col items-center justify-center gap-3 group"
               >
                 <input
                   ref={fileInputRef}
@@ -350,14 +380,14 @@ export default function CustomPrintStudio() {
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-                <div className="p-4 rounded-full bg-white/10 text-white group-hover:scale-110 transition-transform">
+                <div className="p-4 rounded-full bg-black text-white group-hover:scale-110 transition-transform shadow-sm">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white lowercase">
+                  <p className="text-sm font-semibold text-black lowercase">
                     click to upload or drag &amp; drop 3d model
                   </p>
-                  <p className="text-xs text-neutral-400 font-mono mt-1 lowercase">
+                  <p className="text-xs text-neutral-500 font-mono mt-1 lowercase">
                     accepts .stl, .step, .obj, .3mf (up to 250 mb)
                   </p>
                 </div>
@@ -365,16 +395,16 @@ export default function CustomPrintStudio() {
 
               {/* Uploaded File Telemetry Pill */}
               {file && (
-                <div className="p-4 rounded-2xl bg-neutral-950 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-white border border-neutral-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-neutral-900 text-white">
-                      <FileCode className="w-5 h-5 text-emerald-400" />
+                    <div className="p-2 rounded-xl bg-neutral-100 text-black">
+                      <FileCode className="w-5 h-5 text-neutral-800" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white font-mono lowercase">
+                      <h4 className="text-xs font-bold text-black font-mono lowercase">
                         {file.name}
                       </h4>
-                      <p className="text-[11px] text-neutral-400 font-mono">
+                      <p className="text-[11px] text-neutral-600 font-mono">
                         {file.sizeMb} MB · {calculations.scaledVolume} cm³ volume
                         {file.dimensionsMm && (
                           <span>
@@ -386,7 +416,7 @@ export default function CustomPrintStudio() {
                       </p>
                     </div>
                   </div>
-                  <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-mono font-medium border border-emerald-500/30 lowercase">
+                  <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-mono font-medium border border-emerald-200 lowercase">
                     manifold geometry passed
                   </span>
                 </div>
@@ -394,9 +424,9 @@ export default function CustomPrintStudio() {
             </div>
 
             {/* 2. Engineering Material Formulation */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-4 shadow-sm">
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-50 border border-neutral-200 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest">
+                <span className="text-xs font-mono text-neutral-600 lowercase tracking-widest font-semibold">
                   [02] engineering filament / resin
                 </span>
                 <span className="text-[11px] font-mono text-neutral-500">
@@ -411,30 +441,30 @@ export default function CustomPrintStudio() {
                     onClick={() => setSelectedMaterial(mat)}
                     className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
                       selectedMaterial.id === mat.id
-                        ? 'border-white bg-white text-black shadow-lg scale-[1.01]'
-                        : 'border-neutral-800 bg-neutral-950/80 text-neutral-400 hover:text-white hover:border-neutral-700'
+                        ? 'border-black bg-black text-white shadow-md scale-[1.01]'
+                        : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400 hover:text-black'
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <span
                           className={`font-semibold text-xs lowercase ${
-                            selectedMaterial.id === mat.id ? 'text-black' : 'text-white'
+                            selectedMaterial.id === mat.id ? 'text-white' : 'text-black'
                           }`}
                         >
                           {mat.name}
                         </span>
                         <span
                           className={`font-mono text-[11px] font-bold ${
-                            selectedMaterial.id === mat.id ? 'text-black' : 'text-emerald-400'
+                            selectedMaterial.id === mat.id ? 'text-neutral-200' : 'text-emerald-700'
                           }`}
                         >
-                          ${mat.pricePerCm3.toFixed(2)}/cm³
+                          {formatPrice(mat.pricePerCm3)}/cm³
                         </span>
                       </div>
                       <p
                         className={`text-[11px] lowercase leading-relaxed ${
-                          selectedMaterial.id === mat.id ? 'text-neutral-700' : 'text-neutral-400'
+                          selectedMaterial.id === mat.id ? 'text-neutral-300' : 'text-neutral-500'
                         }`}
                       >
                         {mat.description}
@@ -446,9 +476,9 @@ export default function CustomPrintStudio() {
             </div>
 
             {/* 3. Slicing Parameters & Infill Geometry */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-6 shadow-sm">
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-50 border border-neutral-200 space-y-6 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest">
+                <span className="text-xs font-mono text-neutral-600 lowercase tracking-widest font-semibold">
                   [03] slicing parameters &amp; infill
                 </span>
                 <span className="text-[11px] font-mono text-neutral-500">
@@ -458,7 +488,7 @@ export default function CustomPrintStudio() {
 
               {/* Layer Height Buttons */}
               <div>
-                <span className="text-xs font-mono text-neutral-400 lowercase block mb-2">
+                <span className="text-xs font-mono text-neutral-600 lowercase block mb-2">
                   layer slicing resolution
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -473,8 +503,8 @@ export default function CustomPrintStudio() {
                       onClick={() => setLayerHeight(res.val)}
                       className={`py-2 rounded-xl text-xs font-mono lowercase transition-all text-center ${
                         layerHeight === res.val
-                          ? 'bg-white text-black font-bold shadow-sm'
-                          : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white'
+                          ? 'bg-black text-white font-bold shadow-sm border border-black'
+                          : 'bg-white border border-neutral-200 text-neutral-700 hover:border-black hover:text-black'
                       }`}
                     >
                       {res.label}
@@ -484,10 +514,10 @@ export default function CustomPrintStudio() {
               </div>
 
               {/* Infill Density Slider & Patterns */}
-              <div className="space-y-3 pt-4 border-t border-neutral-800">
+              <div className="space-y-3 pt-4 border-t border-neutral-200">
                 <div className="flex justify-between text-xs font-mono lowercase">
-                  <span className="text-neutral-400">internal infill density</span>
-                  <span className="text-white font-bold">{infillDensity}% · {infillPattern}</span>
+                  <span className="text-neutral-600">internal infill density</span>
+                  <span className="text-black font-bold">{infillDensity}% · {infillPattern}</span>
                 </div>
                 <input
                   type="range"
@@ -496,7 +526,7 @@ export default function CustomPrintStudio() {
                   step={5}
                   value={infillDensity}
                   onChange={(e) => setInfillDensity(Number(e.target.value))}
-                  className="w-full accent-white cursor-pointer h-2 bg-neutral-800 rounded-lg"
+                  className="w-full accent-black cursor-pointer h-2 bg-neutral-200 rounded-lg"
                 />
                 <div className="flex gap-2 pt-1">
                   {(['gyroid', 'honeycomb', 'grid'] as const).map((pat) => (
@@ -505,8 +535,8 @@ export default function CustomPrintStudio() {
                       onClick={() => setInfillPattern(pat)}
                       className={`flex-1 py-1.5 rounded-lg text-[11px] font-mono lowercase transition-colors ${
                         infillPattern === pat
-                          ? 'bg-white text-black font-semibold'
-                          : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white'
+                          ? 'bg-black text-white font-semibold border border-black'
+                          : 'bg-white border border-neutral-200 text-neutral-700 hover:border-black hover:text-black'
                       }`}
                     >
                       {pat} infill
@@ -516,11 +546,11 @@ export default function CustomPrintStudio() {
               </div>
 
               {/* Perimeter Wall Loops & Scale */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-neutral-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-neutral-200">
                 <div>
                   <div className="flex justify-between text-xs font-mono lowercase mb-2">
-                    <span className="text-neutral-400">perimeter wall loops</span>
-                    <span className="text-white font-bold">{wallLoops} walls</span>
+                    <span className="text-neutral-600">perimeter wall loops</span>
+                    <span className="text-black font-bold">{wallLoops} walls</span>
                   </div>
                   <div className="flex gap-1.5">
                     {[2, 3, 4, 6].map((loops) => (
@@ -529,8 +559,8 @@ export default function CustomPrintStudio() {
                         onClick={() => setWallLoops(loops)}
                         className={`flex-1 py-2 rounded-xl text-xs font-mono lowercase transition-all ${
                           wallLoops === loops
-                            ? 'bg-white text-black font-bold'
-                            : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white'
+                            ? 'bg-black text-white font-bold border border-black'
+                            : 'bg-white border border-neutral-200 text-neutral-700 hover:border-black hover:text-black'
                         }`}
                       >
                         {loops}x
@@ -541,8 +571,8 @@ export default function CustomPrintStudio() {
 
                 <div>
                   <div className="flex justify-between text-xs font-mono lowercase mb-2">
-                    <span className="text-neutral-400">cad model scale</span>
-                    <span className="text-white font-bold">{scalePercentage}%</span>
+                    <span className="text-neutral-600">cad model scale</span>
+                    <span className="text-black font-bold">{scalePercentage}%</span>
                   </div>
                   <input
                     type="range"
@@ -551,15 +581,15 @@ export default function CustomPrintStudio() {
                     step={5}
                     value={scalePercentage}
                     onChange={(e) => setScalePercentage(Number(e.target.value))}
-                    className="w-full accent-white cursor-pointer h-2 bg-neutral-800 rounded-lg mt-2.5"
+                    className="w-full accent-black cursor-pointer h-2 bg-neutral-200 rounded-lg mt-2.5"
                   />
                 </div>
               </div>
             </div>
 
             {/* 4. Engineering Post-Processing & Hardware */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-4 shadow-sm">
-              <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest block">
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-50 border border-neutral-200 space-y-4 shadow-sm">
+              <span className="text-xs font-mono text-neutral-600 lowercase tracking-widest font-semibold block">
                 [04] engineering post-processing &amp; hardware
               </span>
 
@@ -569,8 +599,8 @@ export default function CustomPrintStudio() {
                     key={f.id}
                     className={`flex items-start gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all ${
                       selectedFinish.id === f.id
-                        ? 'border-white bg-white/10 text-white shadow-sm'
-                        : 'border-neutral-800 bg-neutral-950/60 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200'
+                        ? 'border-black bg-white shadow-sm ring-1 ring-black text-black'
+                        : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-black'
                     }`}
                   >
                     <input
@@ -578,16 +608,16 @@ export default function CustomPrintStudio() {
                       name="finish"
                       checked={selectedFinish.id === f.id}
                       onChange={() => setSelectedFinish(f)}
-                      className="mt-1 accent-white"
+                      className="mt-1 accent-black"
                     />
                     <div className="flex-1 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white lowercase">{f.name}</span>
-                        <span className="font-mono text-emerald-400 font-bold">
+                        <span className="font-semibold text-black lowercase">{f.name}</span>
+                        <span className="font-mono text-emerald-700 font-bold">
                           {f.cost === 0 ? 'included' : `+${formatPrice(f.cost)}`}
                         </span>
                       </div>
-                      <p className="text-[11px] text-neutral-400 mt-1 lowercase leading-relaxed">
+                      <p className="text-[11px] text-neutral-500 mt-1 lowercase leading-relaxed">
                         {f.description}
                       </p>
                     </div>
@@ -595,30 +625,120 @@ export default function CustomPrintStudio() {
                 ))}
               </div>
             </div>
+
+            {/* 5. Pan-India Delivery & GST Compliance */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-50 border border-neutral-200 space-y-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-neutral-600 lowercase tracking-widest font-semibold">
+                  [05] pan-india dispatch &amp; b2b gst details
+                </span>
+                <span className="text-[11px] font-mono text-neutral-500">
+                  hubs: blr · pnq · del · hyd · maa
+                </span>
+              </div>
+
+              {/* Pin Code Checker */}
+              <div className="p-4 rounded-2xl bg-white border border-neutral-200 space-y-2.5">
+                <label className="text-xs font-medium text-black lowercase flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-neutral-700" />
+                  <span>check delivery speed for your indian pin code</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={pincode}
+                    onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter 6-digit PIN (e.g. 560001)"
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-neutral-200 bg-neutral-50 text-xs font-mono text-black focus:outline-none focus:border-black"
+                  />
+                  <div className="px-3.5 py-2 rounded-xl bg-neutral-100 text-xs font-mono text-neutral-700 flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>24-48h dispatch</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-500 font-mono">
+                  ✓ Serviceable via BlueDart Apex, Delhivery Express &amp; DTDC across 19,000+ PIN codes.
+                </p>
+              </div>
+
+              {/* GST B2B Invoicing Toggle */}
+              <div className="p-4 rounded-2xl bg-white border border-neutral-200 space-y-3">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-neutral-700" />
+                    <div>
+                      <span className="text-xs font-semibold text-black lowercase">
+                        claim input tax credit (18% gst invoice)
+                      </span>
+                      <p className="text-[11px] text-neutral-500 font-mono">
+                        HSN 8477 (Additive Manufacturing) / 3926 (Technical Polymers)
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isGstClaim}
+                    onChange={(e) => setIsGstClaim(e.target.checked)}
+                    className="w-4 h-4 accent-black rounded cursor-pointer"
+                  />
+                </label>
+
+                {isGstClaim && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-neutral-150">
+                    <div>
+                      <label className="text-[11px] font-mono text-neutral-600 lowercase block mb-1">
+                        gstin (15 digits)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={15}
+                        placeholder="29ABCDE1234F1Z5"
+                        value={gstin}
+                        onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                        className="w-full px-3 py-1.5 rounded-lg border border-neutral-200 bg-neutral-50 text-xs font-mono text-black focus:outline-none focus:border-black uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-mono text-neutral-600 lowercase block mb-1">
+                        registered company name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Zenith Aerospace Technologies"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg border border-neutral-200 bg-neutral-50 text-xs font-mono text-black focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Live Telemetry HUD & Instant Quote */}
           <div className="lg:col-span-5 sticky top-28 space-y-6">
-            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900 border border-neutral-800 backdrop-blur-xl shadow-2xl space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-neutral-200 shadow-xl space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-neutral-200">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <h3 className="text-sm font-mono font-bold text-white lowercase">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <h3 className="text-sm font-mono font-bold text-black lowercase">
                     additive telemetry &amp; quotation
                   </h3>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-300 text-[10px] font-mono lowercase border border-neutral-700">
-                  500 mm/s
+                <span className="px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 text-[10px] font-mono lowercase border border-neutral-200">
+                  blr-01 hub online
                 </span>
               </div>
 
               {/* Real-time Telemetry Metrics Grid */}
               <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200">
                   <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
-                    <Weight className="w-3 h-3 text-emerald-400" /> filament mass
+                    <Weight className="w-3 h-3 text-neutral-700" /> filament mass
                   </span>
-                  <span className="text-white font-bold text-base block">
+                  <span className="text-black font-bold text-base block">
                     {calculations.massGrams} g
                   </span>
                   <span className="text-[10px] text-neutral-500 lowercase">
@@ -626,11 +746,11 @@ export default function CustomPrintStudio() {
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200">
                   <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
-                    <Layers className="w-3 h-3 text-emerald-400" /> layer slices
+                    <Layers className="w-3 h-3 text-neutral-700" /> layer slices
                   </span>
-                  <span className="text-white font-bold text-base block">
+                  <span className="text-black font-bold text-base block">
                     {calculations.totalLayers.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-neutral-500 lowercase">
@@ -638,11 +758,11 @@ export default function CustomPrintStudio() {
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200">
                   <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
-                    <Clock className="w-3 h-3 text-emerald-400" /> machine time
+                    <Clock className="w-3 h-3 text-neutral-700" /> machine time
                   </span>
-                  <span className="text-white font-bold text-base block">
+                  <span className="text-black font-bold text-base block">
                     {calculations.hours}h {calculations.minutes}m
                   </span>
                   <span className="text-[10px] text-neutral-500 lowercase">
@@ -650,11 +770,11 @@ export default function CustomPrintStudio() {
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200">
                   <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
-                    <Activity className="w-3 h-3 text-emerald-400" /> yield strength
+                    <Activity className="w-3 h-3 text-neutral-700" /> yield strength
                   </span>
-                  <span className="text-emerald-400 font-bold text-base block">
+                  <span className="text-emerald-700 font-bold text-base block">
                     {calculations.tensileYieldMPa} MPa
                   </span>
                   <span className="text-[10px] text-neutral-500 lowercase">
@@ -664,26 +784,34 @@ export default function CustomPrintStudio() {
               </div>
 
               {/* Price Breakdown */}
-              <div className="space-y-2.5 pt-4 border-t border-neutral-800 text-xs">
-                <div className="flex justify-between text-neutral-400 font-mono lowercase">
+              <div className="space-y-2.5 pt-4 border-t border-neutral-200 text-xs">
+                <div className="flex justify-between text-neutral-600 font-mono lowercase">
                   <span>filament material ({selectedMaterial.name})</span>
-                  <span className="text-neutral-200">{formatPrice(calculations.materialCost)}</span>
+                  <span className="text-black font-bold">{formatPrice(calculations.materialCost)}</span>
                 </div>
-                <div className="flex justify-between text-neutral-400 font-mono lowercase">
+                <div className="flex justify-between text-neutral-600 font-mono lowercase">
                   <span>corexy machine time (~{calculations.hours}h {calculations.minutes}m)</span>
-                  <span className="text-neutral-200">{formatPrice(calculations.machineDepreciation)}</span>
+                  <span className="text-black font-bold">{formatPrice(calculations.machineDepreciation)}</span>
                 </div>
                 {selectedFinish.cost > 0 && (
-                  <div className="flex justify-between text-neutral-400 font-mono lowercase">
+                  <div className="flex justify-between text-neutral-600 font-mono lowercase">
                     <span>post-processing ({selectedFinish.name.split(' ')[0]})</span>
-                    <span className="text-neutral-200">{formatPrice(selectedFinish.cost)}</span>
+                    <span className="text-black font-bold">{formatPrice(selectedFinish.cost)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-baseline pt-4 border-t border-neutral-800">
-                  <span className="text-sm font-semibold lowercase text-white">
+                <div className="flex justify-between text-neutral-600 font-mono lowercase">
+                  <span>pan-india insured air dispatch</span>
+                  <span className="text-emerald-700 font-bold">free</span>
+                </div>
+                <div className="flex justify-between text-neutral-500 font-mono lowercase text-[11px]">
+                  <span>gst compliance (18% input tax credit)</span>
+                  <span>hsn 8477</span>
+                </div>
+                <div className="flex justify-between items-baseline pt-4 border-t border-neutral-200">
+                  <span className="text-sm font-semibold lowercase text-black">
                     estimated total
                   </span>
-                  <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
+                  <span className="text-3xl font-extrabold font-mono text-black tracking-tight">
                     {formatPrice(calculations.totalCalculatedCost)}
                   </span>
                 </div>
@@ -693,32 +821,46 @@ export default function CustomPrintStudio() {
               <div className="space-y-3 pt-2">
                 <button
                   onClick={handleAddToCart}
-                  className="w-full py-4 rounded-full bg-white text-black font-semibold text-xs lowercase tracking-tight hover:bg-neutral-200 transition-all shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02]"
+                  className="w-full py-4 rounded-full bg-black text-white font-semibold text-xs lowercase tracking-tight hover:bg-neutral-800 transition-all shadow-md flex items-center justify-center gap-2 hover:scale-[1.01]"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>dispatch to 3d print queue</span>
                 </button>
 
-                <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-500 font-mono lowercase">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                {/* Indian Payment Methods Indicator */}
+                <div className="pt-2 text-center">
+                  <p className="text-[10px] font-mono text-neutral-500 lowercase mb-1">
+                    instant payment via:
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-neutral-700">
+                    <span className="px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200">upi</span>
+                    <span className="px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200">gpay</span>
+                    <span className="px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200">phonepe</span>
+                    <span className="px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200">netbanking</span>
+                    <span className="px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200">rupay</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-500 font-mono lowercase pt-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   <span>cad non-disclosure (nda) &amp; ip protected</span>
                 </div>
               </div>
             </div>
 
             {/* AI Metrology Scanner Card */}
-            <div className="p-6 rounded-3xl border border-neutral-800 bg-neutral-900/40 flex items-center justify-between">
+            <div className="p-6 rounded-3xl border border-neutral-200 bg-neutral-50 flex items-center justify-between">
               <div>
-                <h4 className="text-xs font-bold lowercase text-white">
+                <h4 className="text-xs font-bold lowercase text-black">
                   have a physical component?
                 </h4>
-                <p className="text-[11px] text-neutral-400 lowercase mt-0.5">
+                <p className="text-[11px] text-neutral-500 lowercase mt-0.5">
                   use our visual AI scanner with digital caliper metrology.
                 </p>
               </div>
               <Link
                 href="/ai-measure"
-                className="px-3.5 py-1.5 rounded-full border border-neutral-700 text-xs font-medium text-neutral-300 hover:border-white hover:text-white transition-colors lowercase"
+                className="px-3.5 py-1.5 rounded-full border border-neutral-300 text-xs font-medium text-neutral-700 hover:border-black hover:text-black transition-colors lowercase"
               >
                 ai measure &rarr;
               </Link>

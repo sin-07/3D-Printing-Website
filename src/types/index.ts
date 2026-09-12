@@ -133,7 +133,7 @@ export interface CustomCommissionOrder {
   notes?: string;
 }
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'AUD';
+export type Currency = 'INR' | 'USD' | 'EUR' | 'GBP';
 
 // ==========================================
 // AI STATUE MEASUREMENT & PRICING TYPES
