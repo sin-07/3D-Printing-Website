@@ -56,9 +56,9 @@ export default function ProductCard({
 
   return (
     <div
-      className={`group relative rounded-2xl p-4 transition-all duration-300 flex flex-col justify-between select-none ${
+      className={`group relative rounded-3xl p-4 transition-all duration-300 flex flex-col justify-between select-none ${
         isLight
-          ? 'bg-neutral-50/70 border border-neutral-200 hover:border-black shadow-sm hover:shadow-lg'
+          ? 'bg-white border border-neutral-200/90 hover:border-neutral-900 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]'
           : 'bg-neutral-900/30 border border-neutral-800 hover:border-neutral-600'
       }`}
     >
