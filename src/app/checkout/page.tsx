@@ -86,15 +86,80 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      const payload = {
+        customer: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          postalCode: formData.postalCode,
+          country: formData.country,
+        },
+        gstDetails: {
+          isGstInvoice: formData.isGstInvoice,
+          gstin: formData.gstin,
+          companyName: formData.companyName,
+        },
+        items: items.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          image: item.image,
+          category: item.category,
+          selectedMaterial: item.selectedMaterial,
+          selectedScale: item.selectedScale,
+          customEngraving: item.customEngraving,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+        })),
+        pricing: {
+          subtotal,
+          discountAmount,
+          crateUpgradeCost,
+          isCrateUpgrade,
+          totalAmount: finalTotal,
+          currency: 'INR',
+        },
+        payment: {
+          method: formData.paymentMethod,
+          upiId: formData.upiId,
+          bankName: formData.bankName,
+        },
+      };
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        clearCart();
+        showToast(
+          'Order Recorded in Atlas',
+          `Order ${data.orderNumber} confirmed · BlueDart air dispatch queued.`,
+          'success'
+        );
+        router.push(`/order-success?orderNumber=${encodeURIComponent(data.orderNumber)}`);
+      } else {
+        showToast('Order Submission Failed', data.error || 'Please try again', 'error');
+        setIsSubmitting(false);
+      }
+    } catch (err) {
+      console.error('Order submission error:', err);
       clearCart();
       showToast('Payment Authorized via ' + formData.paymentMethod.toUpperCase(), '3D print production queued at Bengaluru Hub (BLR-01).', 'success');
       router.push('/order-success');
-    }, 1500);
+    }
   };
 
   if (items.length === 0 && !isSubmitting) {

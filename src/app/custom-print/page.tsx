@@ -299,10 +299,47 @@ export default function CustomPrintStudio() {
     showToast('CAD File Accepted', `Calculated volume: ${simulatedVol} cm³`, 'success');
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    let quoteId = '';
+    try {
+      const res = await fetch('/api/custom-print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSizeMb: file.sizeMb,
+          dimensionsMm: file.dimensionsMm,
+          triangleCount: file.triangleCount,
+          slicingParams: {
+            scalePercentage,
+            material: selectedMaterial.name,
+            layerHeight,
+            infillDensity,
+            infillPattern,
+            wallLoops,
+            finish: selectedFinish.name,
+            toleranceGrade,
+          },
+          calculations,
+          customerDetails: {
+            pincode,
+            isGstClaim,
+            gstin,
+            companyName,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.quoteId) {
+        quoteId = data.quoteId;
+      }
+    } catch (e) {
+      console.warn('CAD quote logging fallback:', e);
+    }
+
     addItem({
       productId: 'custom-cad-print',
-      name: `Custom 3D Print: ${file.name}`,
+      name: `Custom 3D Print: ${file.name}${quoteId ? ` (${quoteId})` : ''}`,
       image: '/images/part_gearbox_pacf.jpg',
       category: 'Rapid Prototyping',
       selectedMaterial: selectedMaterial.name as any,
@@ -313,7 +350,7 @@ export default function CustomPrintStudio() {
     });
     showToast(
       'Print Job Added to Cart',
-      `${file.name} configured in ${selectedMaterial.name} queued for production.`,
+      `${file.name} configured in ${selectedMaterial.name} queued for production.${quoteId ? ` Quote: ${quoteId}` : ''}`,
       'success'
     );
   };

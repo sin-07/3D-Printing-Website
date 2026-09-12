@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import confetti from 'canvas-confetti';
 import {
   CheckCircle2,
@@ -14,18 +15,30 @@ import {
   ArrowRight,
   Clock,
   ExternalLink,
+  PackageCheck,
+  Truck,
+  MapPin,
 } from 'lucide-react';
 
-export default function OrderSuccessPage() {
-  const [orderNumber] = useState(`ATH-2026-${Math.floor(100000 + Math.random() * 900000)}`);
-  const [serialNumber] = useState(`ATH-SER-00${Math.floor(10 + Math.random() * 89)}/250`);
+function OrderSuccessContent() {
+  const searchParams = useSearchParams();
+  const queryOrderNumber = searchParams.get('orderNumber');
+
+  const [orderNumber, setOrderNumber] = useState(
+    queryOrderNumber || `ATH-2026-${Math.floor(100000 + Math.random() * 900000)}`
+  );
+  const [serialNumber] = useState(
+    `ATH-SER-00${Math.floor(10 + Math.random() * 89)}/250`
+  );
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false);
 
   useEffect(() => {
     // Confetti effect
     try {
       confetti({
-        particleCount: 80,
-        spread: 70,
+        particleCount: 85,
+        spread: 75,
         origin: { y: 0.6 },
         colors: ['#d4af37', '#f4dc93', '#00f0ff', '#ffffff'],
       });
@@ -34,40 +47,115 @@ export default function OrderSuccessPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (queryOrderNumber) {
+      setOrderNumber(queryOrderNumber);
+      setIsLoadingOrder(true);
+      fetch(`/api/orders?orderNumber=${encodeURIComponent(queryOrderNumber)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.order) {
+            setOrderDetails(data.order);
+          }
+        })
+        .catch((err) => console.error('Error fetching order from Atlas:', err))
+        .finally(() => setIsLoadingOrder(false));
+    }
+  }, [queryOrderNumber]);
+
   const stages = [
-    { title: '1. Slicing & Support Matrix', desc: '0.015mm layer generation completed', status: 'completed' },
-    { title: '2. 16K SLA Photopolymer Curing', desc: 'Active in 405nm nitrogen chamber (Layer 1,840/3,520)', status: 'active' },
-    { title: '3. Ultrasonic IPA Wash', desc: 'Dual-tank micro-cleaning queued', status: 'pending' },
-    { title: '4. Thermal UV Anneal', desc: 'Vacuum post-cure for structural rigidity', status: 'pending' },
-    { title: '5. Hand-Sanding & Polishing', desc: '3000-grit micro-abrasive artisan finish', status: 'pending' },
-    { title: '6. Florentine 24K Gold Gilding', desc: 'Hand-laid metal leaf & protective satin seal', status: 'pending' },
-    { title: '7. Flight Case Nesting & Dispatch', desc: 'Laser-cut foam crate with insured air freight', status: 'pending' },
+    {
+      title: '1. Slicing & Support Matrix',
+      desc: '0.015mm layer generation completed on CoreXY slicer',
+      status: 'completed',
+    },
+    {
+      title: '2. Precision Extrusion / 16K SLA Photopolymer Curing',
+      desc: 'Active in 405nm nitrogen chamber (Layer 1,840/3,520)',
+      status: 'active',
+    },
+    {
+      title: '3. Ultrasonic Solvent Cleaning',
+      desc: 'Dual-tank micro-cleaning & support dissolution queued',
+      status: 'pending',
+    },
+    {
+      title: '4. Thermal Vacuum Post-Anneal',
+      desc: 'Vacuum post-cure for maximum tensile rigidity',
+      status: 'pending',
+    },
+    {
+      title: '5. Caliper Metrology & CMM Inspection',
+      desc: 'Micro-caliper CMM verification against ±0.03mm CAD envelope',
+      status: 'pending',
+    },
+    {
+      title: '6. Florentine Hand-Finish / Ceramic Hard-Coat',
+      desc: 'Technical matte surface sealing & serial engraving',
+      status: 'pending',
+    },
+    {
+      title: '7. Flight Case Nesting & Pan-India Air Dispatch',
+      desc: 'Laser-cut foam crate with BlueDart Apex Air Express',
+      status: 'pending',
+    },
   ];
+
+  const trackingNumber =
+    orderDetails?.logistics?.trackingNumber ||
+    `BD-IN-${Math.floor(100000000 + Math.random() * 900000000)}`;
+  const dispatchHub =
+    orderDetails?.logistics?.hub ||
+    'BLR-01 (Bengaluru Center of Additive Excellence)';
 
   return (
     <div className="min-h-screen bg-obsidian-950 pt-28 pb-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Success Header */}
-        <div className="text-center space-y-4 mb-12">
+        <div className="text-center space-y-4 mb-10">
           <div className="w-16 h-16 rounded-full bg-gold-500/10 border border-gold-500/40 text-gold-400 flex items-center justify-center mx-auto shadow-gold-glow">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
           <span className="text-xs font-mono text-gold-400 font-bold uppercase tracking-widest block">
-            ACQUISITION PROTOCOL CONFIRMED
+            ACQUISITION PROTOCOL CONFIRMED · RECORDED IN ATLAS
           </span>
 
           <h1 className="text-3xl sm:text-5xl font-display font-bold text-foreground">
-            Sculpture In Production
+            Print Cell In Production
           </h1>
 
           <p className="text-xs sm:text-sm text-titanium-400 max-w-lg mx-auto font-mono">
-            Order Reference: <span className="text-foreground font-bold">{orderNumber}</span> • Tracking updates dispatched to your registered collector email.
+            Order Reference:{' '}
+            <span className="text-foreground font-bold">{orderNumber}</span> •
+            Tracking telemetry dispatched to your registered email.
           </p>
         </div>
 
+        {/* Live MongoDB Logistics Banner */}
+        <div className="mb-8 p-5 rounded-2xl bg-obsidian-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              <Truck className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] text-titanium-400 uppercase tracking-wider">
+                PAN-INDIA DISPATCH AIRWAY BILL (AWB)
+              </div>
+              <div className="text-white font-bold text-sm tracking-wide">
+                {trackingNumber}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-titanium-300">
+            <MapPin className="w-3.5 h-3.5 text-gold-400 shrink-0" />
+            <span>Fulfillment: {dispatchHub}</span>
+          </div>
+        </div>
+
         {/* Certificate of Authenticity Holographic Card Preview */}
-        <div className="p-8 rounded-3xl bg-gradient-to-br from-obsidian-850 via-obsidian-900 to-obsidian-950 border border-gold-500/50 shadow-2xl relative overflow-hidden mb-12">
+        <div className="p-8 rounded-3xl bg-gradient-to-br from-obsidian-850 via-obsidian-900 to-obsidian-950 border border-gold-500/50 shadow-2xl relative overflow-hidden mb-10">
           {/* Shimmer aura */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -80,7 +168,9 @@ export default function OrderSuccessPage() {
                 <h3 className="text-base font-display font-bold text-foreground">
                   Holographic NFC Authenticity Key
                 </h3>
-                <p className="text-xs font-mono text-titanium-400">Decentralized Provenance Record</p>
+                <p className="text-xs font-mono text-titanium-400">
+                  Decentralized Provenance & Atlas Record
+                </p>
               </div>
             </div>
 
@@ -92,27 +182,71 @@ export default function OrderSuccessPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 text-xs font-mono border-b border-obsidian-800">
             <div>
               <span className="text-titanium-500 block text-[10px]">EDITION TIER</span>
-              <span className="text-foreground font-bold mt-0.5 block">Mythic Limited</span>
+              <span className="text-foreground font-bold mt-0.5 block">
+                Engineering Grade
+              </span>
             </div>
             <div>
-              <span className="text-titanium-500 block text-[10px]">SLICING HEIGHT</span>
-              <span className="text-gold-400 font-bold mt-0.5 block">0.015 mm / Layer</span>
+              <span className="text-titanium-500 block text-[10px]">SLICING TOLERANCE</span>
+              <span className="text-gold-400 font-bold mt-0.5 block">
+                ±0.03 mm / Layer
+              </span>
             </div>
             <div>
               <span className="text-titanium-500 block text-[10px]">AUTHENTICITY NFC</span>
-              <span className="text-emerald-400 font-bold mt-0.5 block">Hardware Active</span>
+              <span className="text-emerald-400 font-bold mt-0.5 block">
+                Hardware Active
+              </span>
             </div>
             <div>
-              <span className="text-titanium-500 block text-[10px]">FLIGHT CASE</span>
-              <span className="text-foreground font-bold mt-0.5 block">Custom Foam Nested</span>
+              <span className="text-titanium-500 block text-[10px]">FLIGHT CRATE</span>
+              <span className="text-foreground font-bold mt-0.5 block">
+                Shockproof Nested
+              </span>
             </div>
           </div>
 
+          {/* Customer & Items Details from MongoDB */}
+          {orderDetails && orderDetails.items && (
+            <div className="py-5 border-b border-obsidian-800 space-y-3">
+              <div className="text-[10px] font-mono text-titanium-500 uppercase">
+                Allocated Print Queue Items ({orderDetails.items.length})
+              </div>
+              <div className="space-y-2">
+                {orderDetails.items.map((item: any, i: number) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between text-xs font-mono text-neutral-300 bg-obsidian-950/60 p-2.5 rounded-lg border border-obsidian-800"
+                  >
+                    <span>
+                      {item.quantity}x {item.name} ({item.selectedMaterial})
+                    </span>
+                    <span className="font-bold text-white">
+                      ₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {orderDetails.customer && (
+                <div className="text-[11px] font-mono text-titanium-400 pt-1">
+                  Deliver to:{' '}
+                  <span className="text-white">
+                    {orderDetails.customer.firstName} {orderDetails.customer.lastName}
+                  </span>
+                  , {orderDetails.customer.city}, {orderDetails.customer.state} -{' '}
+                  {orderDetails.customer.postalCode}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-titanium-400 font-mono">
-            <span>Scan physical NFC metal card upon unboxing to verify cryptographic blockchain proof.</span>
+            <span>
+              Scan physical NFC metal certificate upon unboxing to verify cryptographic calibration telemetry.
+            </span>
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 text-gold-400 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-gold-400 hover:text-white transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Archive Receipt</span>
@@ -158,8 +292,12 @@ export default function OrderSuccessPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-xs sm:text-sm font-bold text-foreground">{stage.title}</h4>
-                  <p className="text-[11px] text-titanium-400 font-mono mt-0.5">{stage.desc}</p>
+                  <h4 className="text-xs sm:text-sm font-bold text-foreground">
+                    {stage.title}
+                  </h4>
+                  <p className="text-[11px] text-titanium-400 font-mono mt-0.5">
+                    {stage.desc}
+                  </p>
                 </div>
 
                 <span
@@ -196,5 +334,19 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-obsidian-950 pt-28 flex items-center justify-center text-white font-mono text-xs">
+          Loading order details...
+        </div>
+      }
+    >
+      <OrderSuccessContent />
+    </Suspense>
   );
 }
