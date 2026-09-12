@@ -83,19 +83,29 @@ export default function GsapLandingOrchestrator({ children }: GsapLandingOrchest
     if (prefersReducedMotion) return;
 
     const ctx = gsap.context(() => {
+      // Screen-size responsive motion parameters (eliminates mobile edge clipping & finish stutter)
+      const isMobile = window.innerWidth < 768;
+      const heroOffset = isMobile ? 26 : 50;
+      const appearOffset = isMobile ? 24 : 50;
+      const splitOffset = isMobile ? 28 : 55;
+      const cardOffset = isMobile ? 18 : 42;
+      const triggerStart = isMobile ? 'top 93%' : 'top 88%';
+      const animDuration = isMobile ? 1.35 : 1.45;
+
       // 1. Initial Hero Animations (Above the fold, fires immediately on page mount)
       const heroLeftElements = container.querySelectorAll<HTMLElement>('.gsap-hero-left');
       if (heroLeftElements.length > 0) {
         gsap.fromTo(
           heroLeftElements,
-          { x: -50, opacity: 0 },
+          { x: -heroOffset, opacity: 0 },
           {
             x: 0,
             opacity: 1,
-            duration: 1.45,
-            stagger: 0.12,
+            duration: animDuration,
+            stagger: 0.1,
             ease: ultraSmoothLanding,
-            delay: 0.15,
+            delay: 0.12,
+            force3D: true,
             clearProps: 'transform,opacity,willChange',
           }
         );
@@ -105,14 +115,15 @@ export default function GsapLandingOrchestrator({ children }: GsapLandingOrchest
       if (heroRightElements.length > 0) {
         gsap.fromTo(
           heroRightElements,
-          { x: 50, opacity: 0 },
+          { x: heroOffset, opacity: 0 },
           {
             x: 0,
             opacity: 1,
-            duration: 1.45,
-            stagger: 0.12,
+            duration: animDuration,
+            stagger: 0.1,
             ease: ultraSmoothLanding,
-            delay: 0.25,
+            delay: 0.2,
+            force3D: true,
             clearProps: 'transform,opacity,willChange',
           }
         );
@@ -123,15 +134,16 @@ export default function GsapLandingOrchestrator({ children }: GsapLandingOrchest
       leftElements.forEach((el) => {
         gsap.fromTo(
           el,
-          { x: -50, opacity: 0 },
+          { x: -appearOffset, opacity: 0 },
           {
             x: 0,
             opacity: 1,
-            duration: 1.45,
+            duration: animDuration,
             ease: ultraSmoothLanding,
+            force3D: true,
             scrollTrigger: {
               trigger: el,
-              start: 'top 88%',
+              start: triggerStart,
               toggleActions: 'play none none none',
             },
             clearProps: 'transform,opacity,willChange',
@@ -144,15 +156,16 @@ export default function GsapLandingOrchestrator({ children }: GsapLandingOrchest
       rightElements.forEach((el) => {
         gsap.fromTo(
           el,
-          { x: 50, opacity: 0 },
+          { x: appearOffset, opacity: 0 },
           {
             x: 0,
             opacity: 1,
-            duration: 1.45,
+            duration: animDuration,
             ease: ultraSmoothLanding,
+            force3D: true,
             scrollTrigger: {
               trigger: el,
-              start: 'top 88%',
+              start: triggerStart,
               toggleActions: 'play none none none',
             },
             clearProps: 'transform,opacity,willChange',
@@ -169,15 +182,16 @@ export default function GsapLandingOrchestrator({ children }: GsapLandingOrchest
         if (leftCol) {
           gsap.fromTo(
             leftCol,
-            { x: -55, opacity: 0 },
+            { x: -splitOffset, opacity: 0 },
             {
               x: 0,
               opacity: 1,
-              duration: 1.5,
+              duration: animDuration + 0.05,
               ease: ultraSmoothLanding,
+              force3D: true,
               scrollTrigger: {
                 trigger: row,
-                start: 'top 86%',
+                start: isMobile ? 'top 92%' : 'top 86%',
                 toggleActions: 'play none none none',
               },
               clearProps: 'transform,opacity,willChange',
@@ -188,15 +202,16 @@ export default function GsapLandingOrchestrator({ children }: GsapLandingOrchest
         if (rightCol) {
           gsap.fromTo(
             rightCol,
-            { x: 55, opacity: 0 },
+            { x: splitOffset, opacity: 0 },
             {
               x: 0,
               opacity: 1,
-              duration: 1.5,
+              duration: animDuration + 0.05,
               ease: ultraSmoothLanding,
+              force3D: true,
               scrollTrigger: {
                 trigger: row,
-                start: 'top 86%',
+                start: isMobile ? 'top 92%' : 'top 86%',
                 toggleActions: 'play none none none',
               },
               clearProps: 'transform,opacity,willChange',
@@ -213,16 +228,17 @@ export default function GsapLandingOrchestrator({ children }: GsapLandingOrchest
           const isLeft = index % 2 === 0;
           gsap.fromTo(
             card,
-            { x: isLeft ? -42 : 42, opacity: 0 },
+            { x: isLeft ? -cardOffset : cardOffset, opacity: 0 },
             {
               x: 0,
               opacity: 1,
-              duration: 1.38,
-              delay: (index % 3) * 0.08,
+              duration: animDuration,
+              delay: (index % 3) * 0.07,
               ease: ultraSmoothLanding,
+              force3D: true,
               scrollTrigger: {
                 trigger: card,
-                start: 'top 90%',
+                start: triggerStart,
                 toggleActions: 'play none none none',
               },
               clearProps: 'transform,opacity,willChange',
