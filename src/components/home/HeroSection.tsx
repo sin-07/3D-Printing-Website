@@ -22,22 +22,22 @@ export default function HeroSection() {
 
       {/* Main Centered Content: Clean Lowercase Typography (Exact Reference Match) */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center my-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-mono lowercase text-white/90 mb-6">
+        <div className="gsap-hero-left inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-mono lowercase text-white/90 mb-6">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span>next-gen corexy additive manufacturing</span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-medium tracking-[-0.04em] leading-[1.08] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)] lowercase max-w-4xl mx-auto">
+        <h1 className="gsap-hero-left text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-medium tracking-[-0.04em] leading-[1.08] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)] lowercase max-w-4xl mx-auto">
           industrial 3d printing. desktop precision.
         </h1>
 
         {/* 3D Printer Logic Subtitle */}
-        <p className="mt-5 text-sm sm:text-base text-white/85 font-normal tracking-wide lowercase max-w-2xl mx-auto drop-shadow-sm leading-relaxed">
+        <p className="gsap-hero-right mt-5 text-sm sm:text-base text-white/85 font-normal tracking-wide lowercase max-w-2xl mx-auto drop-shadow-sm leading-relaxed">
           high-speed corexy extrusion, 0.08mm layer slicing, and carbon-fiber reinforced thermoplastics engineered for functional prototypes and end-use components.
         </p>
 
         {/* Minimalist CTA Pills */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="gsap-hero-left mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="#live-slicer"
             className="px-6 py-2.5 rounded-full bg-white text-neutral-950 text-xs sm:text-sm font-semibold lowercase tracking-tight hover:bg-neutral-200 transition-all shadow-md hover:scale-105"
@@ -59,7 +59,7 @@ export default function HeroSection() {
         </div>
 
         {/* Hardware telemetry callouts */}
-        <div className="mt-10 inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[11px] font-mono text-white/75 lowercase border-t border-white/10 pt-4">
+        <div className="gsap-hero-right mt-10 inline-flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[11px] font-mono text-white/75 lowercase border-t border-white/10 pt-4">
           <span>500 mm/s travel</span>
           <span>•</span>
           <span>300°c all-metal hotend</span>

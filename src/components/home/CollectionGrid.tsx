@@ -11,7 +11,7 @@ export default function CollectionGrid() {
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
-          <div>
+          <div className="gsap-appear-left">
             <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest block mb-2">
               additive applications
             </span>
@@ -23,16 +23,18 @@ export default function CollectionGrid() {
             </p>
           </div>
 
-          <Link
-            href="/shop"
-            className="text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black flex items-center gap-1.5 transition-colors lowercase tracking-normal border-b border-black pb-0.5 whitespace-nowrap"
-          >
-            <span>explore all domains &rarr;</span>
-          </Link>
+          <div className="gsap-appear-right">
+            <Link
+              href="/shop"
+              className="text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black flex items-center gap-1.5 transition-colors lowercase tracking-normal border-b border-black pb-0.5 whitespace-nowrap"
+            >
+              <span>explore all domains &rarr;</span>
+            </Link>
+          </div>
         </div>
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="gsap-alternate-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {CATEGORIES.map((category) => (
             <Link
               key={category.id}

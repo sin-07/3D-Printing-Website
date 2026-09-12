@@ -158,7 +158,7 @@ export default function LiveSlicerSection() {
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         {/* Section Header */}
-        <div className="max-w-3xl mb-16 sm:mb-20">
+        <div className="gsap-appear-left max-w-3xl mb-16 sm:mb-20">
           <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest block mb-2">
             g-code simulation engine
           </span>
@@ -170,9 +170,9 @@ export default function LiveSlicerSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="gsap-split-row grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Slicer Controls & Input Parameters */}
-          <div className="lg:col-span-7 bg-neutral-50 border border-neutral-200 rounded-3xl p-6 sm:p-8 space-y-8 shadow-sm">
+          <div className="gsap-col-left lg:col-span-7 bg-neutral-50 border border-neutral-200 rounded-3xl p-6 sm:p-8 space-y-8 shadow-sm">
             {/* 1. Model Preset Selector */}
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -329,7 +329,7 @@ export default function LiveSlicerSection() {
           </div>
 
           {/* Right Column: Live Telemetry HUD & Instant Quote */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="gsap-col-right lg:col-span-5 flex flex-col gap-6">
             {/* Live Telemetry Display Card */}
             <div className="bg-neutral-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-neutral-800">
               <div className="flex items-center justify-between pb-6 border-b border-neutral-800">

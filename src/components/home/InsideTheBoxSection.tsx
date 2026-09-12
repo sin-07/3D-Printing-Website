@@ -50,7 +50,7 @@ export default function InsideTheBoxSection() {
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         {/* Section Header */}
-        <div className="max-w-3xl mb-16 sm:mb-20">
+        <div className="gsap-appear-left max-w-3xl mb-16 sm:mb-20">
           <span className="text-xs font-mono text-neutral-500 lowercase tracking-widest block mb-2">
             package contents &amp; ecosystem
           </span>
@@ -63,7 +63,7 @@ export default function InsideTheBoxSection() {
         </div>
 
         {/* 6-Item Minimalist Grid (makewithloop.com style on Dark) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-neutral-800 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="gsap-alternate-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-neutral-800 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
           {items.map((item) => (
             <div
               key={item.num}

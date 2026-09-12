@@ -33,8 +33,8 @@ export default function RevealText({
     let y = 0;
     if (direction === 'up') y = 40;
     if (direction === 'down') y = -40;
-    if (direction === 'left') x = 40;
-    if (direction === 'right') x = -40;
+    if (direction === 'left') x = -70;
+    if (direction === 'right') x = 70;
 
     const anim = gsap.fromTo(
       el,

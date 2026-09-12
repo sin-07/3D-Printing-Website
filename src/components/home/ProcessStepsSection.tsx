@@ -31,7 +31,7 @@ export default function ProcessStepsSection() {
     >
       <div className="max-w-6xl mx-auto px-6 sm:px-12 w-full">
         {/* Top Center Headline */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="gsap-appear-left text-center max-w-3xl mx-auto mb-16">
           <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest block mb-2">
             the additive workflow
           </span>
@@ -44,7 +44,7 @@ export default function ProcessStepsSection() {
         </div>
 
         {/* Center Visual: Framed Macro Industrial Nozzle Showcase */}
-        <div className="relative w-full aspect-[21/9] sm:aspect-[24/10] rounded-3xl overflow-hidden shadow-xl border border-neutral-200 mb-16 group">
+        <div className="gsap-appear-right relative w-full aspect-[21/9] sm:aspect-[24/10] rounded-3xl overflow-hidden shadow-xl border border-neutral-200 mb-16 group">
           <img
             src="/images/loop_macro_nozzle.jpg"
             alt="Macro 3D print nozzle hotend"
@@ -57,7 +57,7 @@ export default function ProcessStepsSection() {
         </div>
 
         {/* Bottom 3-Column Layout with Vertical Hairline Dividers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-neutral-200 border-t border-b border-neutral-200 py-6 md:py-0">
+        <div className="gsap-alternate-grid grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-neutral-200 border-t border-b border-neutral-200 py-6 md:py-0">
           {steps.map((step) => (
             <div
               key={step.num}

@@ -36,7 +36,7 @@ export default function PrinterVideoSection() {
     <section className="py-24 bg-neutral-950 border-t border-neutral-900 text-white select-none overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
+        <div className="gsap-appear-left text-center max-w-3xl mx-auto mb-12">
           <span className="text-xs font-mono text-neutral-500 lowercase tracking-widest block mb-2">
             high-speed additive manufacturing
           </span>
@@ -49,7 +49,7 @@ export default function PrinterVideoSection() {
         </div>
 
         {/* Video Player Frame */}
-        <div className="relative max-w-5xl mx-auto rounded-3xl overflow-hidden border border-neutral-800 bg-neutral-900/50 shadow-2xl group">
+        <div className="gsap-appear-right relative max-w-5xl mx-auto rounded-3xl overflow-hidden border border-neutral-800 bg-neutral-900/50 shadow-2xl group">
           {/* HTML5 Video Element */}
           <div className="relative aspect-video w-full bg-black overflow-hidden flex items-center justify-center">
             <video

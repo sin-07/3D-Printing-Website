@@ -44,7 +44,7 @@ export default function HardwareChamberSection() {
       </div>
 
       {/* Top Headline */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center pt-8">
+      <div className="gsap-appear-left relative z-10 max-w-4xl mx-auto px-6 text-center pt-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-mono lowercase text-neutral-300 mb-4">
           <span>hardware architecture &amp; kinematics</span>
         </div>
@@ -61,7 +61,7 @@ export default function HardwareChamberSection() {
 
       {/* Bottom Spec Pills */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 w-full pb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="gsap-alternate-grid grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {features.map((feat, idx) => (
             <div
               key={feat.label}

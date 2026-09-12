@@ -10,9 +10,9 @@ export default function PrecisionMetrologySection() {
       className="relative w-full min-h-screen flex items-center bg-white text-black py-24 sm:py-32 overflow-hidden select-none"
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        <div className="gsap-split-row grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Left Column: Minimalist Typography & Giant Stat Callout */}
-          <div className="lg:col-span-7 flex flex-col justify-center">
+          <div className="gsap-col-left lg:col-span-7 flex flex-col justify-center">
             {/* Bold Lowercase Headline */}
             <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-[64px] font-bold tracking-[-0.04em] leading-[1.08] text-black lowercase">
               consistent precision. every time.
@@ -50,7 +50,7 @@ export default function PrecisionMetrologySection() {
           </div>
 
           {/* Right Column: Digital Caliper Photography on Pure White */}
-          <div className="lg:col-span-5 flex items-center justify-center">
+          <div className="gsap-col-right lg:col-span-5 flex items-center justify-center">
             <div className="relative w-full max-w-lg aspect-square rounded-2xl overflow-hidden bg-white flex items-center justify-center p-2 group">
               <img
                 src="/images/loop_caliper_precision.jpg"

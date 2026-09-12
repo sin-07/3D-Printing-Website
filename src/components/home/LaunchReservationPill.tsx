@@ -34,7 +34,7 @@ export default function LaunchReservationPill() {
       </div>
 
       {/* Centered Floating White Pill Card */}
-      <div className="relative z-10 w-full max-w-md mx-6">
+      <div className="gsap-appear-left relative z-10 w-full max-w-md mx-6">
         <div className="bg-white text-black rounded-[28px] sm:rounded-[36px] p-8 sm:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-center transition-all duration-300 hover:shadow-[0_25px_70px_rgba(0,0,0,0.8)] border border-neutral-100">
           {/* Bold Header */}
           <h3 className="text-2xl sm:text-3xl font-bold tracking-tight lowercase text-neutral-950">

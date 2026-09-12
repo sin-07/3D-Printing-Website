@@ -18,7 +18,7 @@ export default function FeaturedMasterpieces() {
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
-          <div>
+          <div className="gsap-appear-left">
             <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest block mb-2">
               engineering catalog
             </span>
@@ -30,18 +30,20 @@ export default function FeaturedMasterpieces() {
             </p>
           </div>
 
-          <Link
-            href="/shop"
-            className="text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black flex items-center gap-1.5 transition-colors lowercase tracking-normal border-b border-black pb-0.5 whitespace-nowrap"
-          >
-            <span>view all components ({PRODUCTS.length}) &rarr;</span>
-          </Link>
+          <div className="gsap-appear-right">
+            <Link
+              href="/shop"
+              className="text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black flex items-center gap-1.5 transition-colors lowercase tracking-normal border-b border-black pb-0.5 whitespace-nowrap"
+            >
+              <span>view all components ({PRODUCTS.length}) &rarr;</span>
+            </Link>
+          </div>
         </div>
 
-        {/* Product Cards Grid (Light Mode) */}
+        {/* Product Cards Grid (Light Mode with Left/Right Staggered GSAP) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {featured.map((product, idx) => (
-            <RevealText key={product.id} delay={idx * 0.08}>
+            <RevealText key={product.id} direction={idx % 2 === 0 ? 'left' : 'right'} delay={(idx % 3) * 0.1}>
               <ProductCard
                 product={product}
                 theme="light"

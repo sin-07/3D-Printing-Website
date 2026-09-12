@@ -9,7 +9,7 @@ export default function InteractiveStudio() {
     <section className="py-24 bg-neutral-950 relative overflow-hidden border-t border-neutral-900 select-none text-white">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         {/* Section Title */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
+        <div className="gsap-appear-left text-center max-w-3xl mx-auto mb-12">
           <span className="text-xs font-mono text-neutral-500 lowercase tracking-widest block mb-2">
             real-time kinematics &amp; toolpath inspection
           </span>
@@ -22,7 +22,7 @@ export default function InteractiveStudio() {
         </div>
 
         {/* 3D Part Viewer Turntable */}
-        <div className="max-w-5xl mx-auto">
+        <div className="gsap-appear-right max-w-5xl mx-auto">
           <StatueViewer
             initialMaterial="Carbon Fiber PA-CF"
             height="520px"
@@ -31,7 +31,7 @@ export default function InteractiveStudio() {
         </div>
 
         {/* Feature Cards below 3D */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-8">
+        <div className="gsap-alternate-grid grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-8">
           <div className="p-6 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 hover:border-neutral-700 transition-colors">
             <div className="flex items-center gap-3 mb-2.5">
               <div className="p-2 rounded-lg bg-neutral-800 text-emerald-400">

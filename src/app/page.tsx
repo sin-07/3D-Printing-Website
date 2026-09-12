@@ -1,4 +1,5 @@
 import React from 'react';
+import GsapLandingOrchestrator from '@/components/animations/GsapLandingOrchestrator';
 import HeroSection from '@/components/home/HeroSection';
 import ProcessStepsSection from '@/components/home/ProcessStepsSection';
 import HardwareChamberSection from '@/components/home/HardwareChamberSection';
@@ -13,7 +14,8 @@ import LaunchReservationPill from '@/components/home/LaunchReservationPill';
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col w-full overflow-hidden bg-black text-white">
+    <GsapLandingOrchestrator>
+      <div className="flex flex-col w-full overflow-hidden bg-black text-white">
       {/* 1. ⬛ DARK: Industrial 3D Printing Hero & Workshop */}
       <HeroSection />
 
@@ -48,6 +50,7 @@ export default function HomePage() {
       <LaunchReservationPill />
 
       {/* 12. ⬛ DARK: Minimalist Engineering Footer (Rendered in Layout) */}
-    </div>
+      </div>
+    </GsapLandingOrchestrator>
   );
 }
