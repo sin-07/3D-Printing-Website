@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import cloudinary, { uploadBuffer, isCloudinaryConfigured } from '@/lib/cloudinary';
 import { getDatabase } from '@/lib/mongodb';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     if (!isCloudinaryConfigured()) {

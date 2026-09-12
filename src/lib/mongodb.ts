@@ -1,11 +1,6 @@
 import { Resolver } from 'dns/promises';
 import { MongoClient, Db } from 'mongodb';
 
-const rawUri = process.env.MONGODB_URI;
-if (!rawUri) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
-}
-
 /**
  * Dynamically resolves mongodb+srv:// records using public DNS servers (8.8.8.8, 1.1.1.1)
  * to prevent Windows ISP "querySrv ECONNREFUSED" errors while preserving mongodb+srv:// URI in .env.local.
@@ -63,24 +58,27 @@ async function resolveSrvConnectionString(uri: string): Promise<string> {
   }
 }
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
-
 declare global {
   // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-async function createClient(): Promise<MongoClient> {
-  // First try direct SRV connection
+let cachedPromise: Promise<MongoClient> | null = null;
+
+async function createClient(uri: string): Promise<MongoClient> {
+  // First try standard SRV connection
   try {
-    const standardClient = new MongoClient(rawUri!);
+    const standardClient = new MongoClient(uri);
     await standardClient.connect();
     return standardClient;
   } catch (err: any) {
     // If querySrv ECONNREFUSED occurs on Windows, dynamically resolve SRV with 8.8.8.8/1.1.1.1
-    if (err?.code === 'ECONNREFUSED' || err?.syscall === 'querySrv' || rawUri!.startsWith('mongodb+srv://')) {
-      const resolvedUri = await resolveSrvConnectionString(rawUri!);
+    if (
+      err?.code === 'ECONNREFUSED' ||
+      err?.syscall === 'querySrv' ||
+      uri.startsWith('mongodb+srv://')
+    ) {
+      const resolvedUri = await resolveSrvConnectionString(uri);
       const resolvedClient = new MongoClient(resolvedUri);
       await resolvedClient.connect();
       return resolvedClient;
@@ -89,21 +87,38 @@ async function createClient(): Promise<MongoClient> {
   }
 }
 
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    global._mongoClientPromise = createClient();
+/**
+ * Lazy, on-demand client acquisition.
+ * Never executes at build/compile time, preventing Vercel build crashes.
+ */
+export async function getClientPromise(): Promise<MongoClient> {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error(
+      'MONGODB_URI is not defined. Please set MONGODB_URI in your environment variables.'
+    );
   }
-  clientPromise = global._mongoClientPromise;
-} else {
-  clientPromise = createClient();
+
+  if (process.env.NODE_ENV === 'development') {
+    if (!global._mongoClientPromise) {
+      global._mongoClientPromise = createClient(uri);
+    }
+    return global._mongoClientPromise;
+  }
+
+  if (!cachedPromise) {
+    cachedPromise = createClient(uri);
+  }
+  return cachedPromise;
 }
 
 /**
- * Helper to get MongoDB Database instance
+ * Helper to get MongoDB Database instance on-demand
  */
-export async function getDatabase(dbName = 'aetheris_3d'): Promise<Db> {
-  const connectedClient = await clientPromise;
-  return connectedClient.db(dbName);
+export async function getDatabase(dbName?: string): Promise<Db> {
+  const targetDb = dbName || process.env.MONGODB_DB || 'aetheris_3d';
+  const connectedClient = await getClientPromise();
+  return connectedClient.db(targetDb);
 }
 
-export default clientPromise;
+export default getClientPromise;

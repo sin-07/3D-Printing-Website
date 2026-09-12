@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
+    if (!process.env.MONGODB_URI) {
+      return NextResponse.json({
+        status: 'unconfigured',
+        message: 'MONGODB_URI is not set in environment variables. Please add it to your Vercel Project Settings.',
+      });
+    }
+
     const startTime = Date.now();
     const db = await getDatabase();
     const pingResult = await db.command({ ping: 1 });
