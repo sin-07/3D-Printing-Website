@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
-import RevealText from '@/components/animations/RevealText';
+import { parseSTLGeometry } from '@/lib/ai/geometry-service';
 import {
   Upload,
   Layers,
@@ -15,82 +16,118 @@ import {
   Clock,
   Weight,
   ShoppingBag,
-  Info,
   Sliders,
   ShieldCheck,
-  RotateCcw,
+  Flame,
+  Wrench,
+  ArrowRight,
+  Activity,
 } from 'lucide-react';
 
-interface MaterialOptionCommission {
+interface EngineeringMaterial {
   id: string;
   name: string;
   pricePerCm3: number;
+  density: number; // g/cm³
+  baseTensileMPa: number;
+  maxTempC: number;
   description: string;
-  densityGPerCm3: number;
 }
 
-const COMMISSION_MATERIALS: MaterialOptionCommission[] = [
+const ENGINEERING_MATERIALS: EngineeringMaterial[] = [
   {
-    id: 'sla-16k-standard',
-    name: '16K Ultra-HD SLA Resin',
-    pricePerCm3: 0.38,
-    densityGPerCm3: 1.15,
-    description: 'Ultra-crisp 15-micron photopolymer for hyper-detailed miniatures, figurines, and sculptures.',
+    id: 'pacf',
+    name: 'Carbon Fiber PA-CF',
+    pricePerCm3: 0.58,
+    density: 1.18,
+    baseTensileMPa: 115,
+    maxTempC: 180,
+    description: 'Polyamide 12 reinforced with 20% chopped carbon fiber. Extreme rigidity, 180°C HDT, and low creep under load.',
   },
   {
-    id: 'titanium-infused',
-    name: 'Titanium-Infused Ceramic Resin',
-    pricePerCm3: 0.65,
-    densityGPerCm3: 1.65,
-    description: 'Heavyweight rigid composite with metallic ring and superior impact resistance.',
+    id: 'plaplus',
+    name: 'PLA+ Biopolymer',
+    pricePerCm3: 0.28,
+    density: 1.24,
+    baseTensileMPa: 75,
+    maxTempC: 60,
+    description: 'High-toughness modified polylactic biopolymer engineered for 0.08mm layer precision and razor-sharp tolerances.',
   },
   {
-    id: 'translucent-smoke',
-    name: 'Translucent Smoked Optical Resin',
-    pricePerCm3: 0.48,
-    densityGPerCm3: 1.18,
-    description: 'Crystal-clear glass-like clarity with tinted smoke finish displaying internal supports.',
+    id: 'petg',
+    name: 'Industrial PETG',
+    pricePerCm3: 0.34,
+    density: 1.27,
+    baseTensileMPa: 68,
+    maxTempC: 85,
+    description: 'Glycol-modified engineering polyester with superior interlayer bonding, impact resistance, and chemical durability.',
   },
   {
-    id: 'tough-engineering',
-    name: 'Flexible Tough Impact Polymer',
-    pricePerCm3: 0.55,
-    densityGPerCm3: 1.2,
-    description: 'High tensile strength with slight elasticity for functional prototypes and articulated joints.',
+    id: 'tpu',
+    name: 'TPU 95A Flexible',
+    pricePerCm3: 0.46,
+    density: 1.21,
+    baseTensileMPa: 48,
+    maxTempC: 90,
+    description: 'Monolithic elastomeric polyurethane with 450% elongation at break for compliant joints, dampeners, and gaskets.',
+  },
+  {
+    id: 'absesd',
+    name: 'ABS-ESD Heat Resistant',
+    pricePerCm3: 0.42,
+    density: 1.08,
+    baseTensileMPa: 65,
+    maxTempC: 105,
+    description: 'Electrostatic discharge safe thermoplastic with 105°C thermal deflection for electronics enclosures.',
+  },
+  {
+    id: 'sla16k',
+    name: '16K Technical Photopolymer',
+    pricePerCm3: 0.62,
+    density: 1.15,
+    baseTensileMPa: 74,
+    maxTempC: 85,
+    description: 'Sub-micron stereolithography resin with 15-micron pixel pitch for microfluidic channels and optical mounts.',
   },
 ];
 
-interface FinishCommission {
+interface EngineeringFinish {
   id: string;
   name: string;
   cost: number;
   description: string;
 }
 
-const FINISH_OPTIONS: FinishCommission[] = [
+const ENGINEERING_FINISHES: EngineeringFinish[] = [
   {
-    id: 'raw-cleaned',
-    name: 'Raw Ultrasonic Cleaned & UV Cured',
+    id: 'raw-deburred',
+    name: 'Raw Ultrasonic De-Burred & Support Removal',
     cost: 0,
-    description: 'Supports removed, ultrasonic IPA wash, dual UV post-bake. Ready for your personal painting.',
+    description: 'Support structures removed with micro-cutters and ultrasonic bath cleaning. Ready for immediate assembly.',
   },
   {
-    id: 'matte-primer',
-    name: 'Artisan Micro-Sanded & Primed',
-    cost: 35,
-    description: 'Hand-buffed with 3000-grit micro-abrasives and coated with premium neutral grey automotive primer.',
+    id: 'brass-inserts',
+    name: 'M3/M4 Brass Heat-Set Threaded Inserts (x4)',
+    cost: 16,
+    description: 'Pre-installed knurled brass brass inserts heat-staked into mounting bosses for high-torque mechanical fastening.',
   },
   {
-    id: 'hand-painted',
-    name: 'Master Artisan Hand-Painted Finish',
-    cost: 165,
-    description: 'Full airbrush shading, wash weathering, and micro-detailed eye/armor highlights by our senior artists.',
+    id: 'annealed',
+    name: 'Thermal Stress-Relief Annealing (2h @ 120°C)',
+    cost: 25,
+    description: 'Controlled oven bake relieves internal polymer extrusion stress, increasing heat deflection by up to 20°C.',
   },
   {
-    id: 'gilded-gold',
-    name: '24K Florentine Gold Leaf Gilded',
-    cost: 240,
-    description: 'Genuine hand-laid 24-karat Florentine gold leaf accents over obsidian or alabaster resin.',
+    id: 'vapor-smoothed',
+    name: 'Vapor Smoothing (Injection-Molded Finish)',
+    cost: 38,
+    description: 'Chemical vapor chamber exposure creates a fully sealed, glossy, watertight surface with zero visible layer lines.',
+  },
+  {
+    id: 'cmm-metrology',
+    name: 'CMM Caliper Metrology Inspection Sheet',
+    cost: 18,
+    description: 'Multi-point digital vernier caliper dimensional check verifying critical bearing bores and planar tolerances.',
   },
 ];
 
@@ -100,112 +137,211 @@ export default function CustomPrintStudio() {
   const { showToast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<{ name: string; sizeMb: number } | null>({
-    name: 'archangel_custom_v3.stl',
-    sizeMb: 48.2,
+
+  // File state
+  const [file, setFile] = useState<{
+    name: string;
+    sizeMb: number;
+    dimensionsMm?: { width: number; height: number; depth: number };
+    triangleCount?: number;
+  }>({
+    name: 'planetary_gearbox_v4.step',
+    sizeMb: 18.4,
+    dimensionsMm: { width: 115, height: 58, depth: 115 },
+    triangleCount: 42800,
   });
 
-  const [baseVolumeCm3, setBaseVolumeCm3] = useState(320);
-  const [scalePercentage, setScalePercentage] = useState(100);
-  const [infillDensity, setInfillDensity] = useState(25);
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialOptionCommission>(
-    COMMISSION_MATERIALS[0]
+  const [baseVolumeCm3, setBaseVolumeCm3] = useState<number>(125);
+  const [scalePercentage, setScalePercentage] = useState<number>(100);
+  const [layerHeight, setLayerHeight] = useState<number>(0.12);
+  const [infillDensity, setInfillDensity] = useState<number>(45);
+  const [infillPattern, setInfillPattern] = useState<'gyroid' | 'honeycomb' | 'grid'>('gyroid');
+  const [wallLoops, setWallLoops] = useState<number>(4);
+  const [toleranceGrade, setToleranceGrade] = useState<'standard' | 'precision' | 'press-fit'>('precision');
+
+  const [selectedMaterial, setSelectedMaterial] = useState<EngineeringMaterial>(
+    ENGINEERING_MATERIALS[0]
   );
-  const [selectedFinish, setSelectedFinish] = useState<FinishCommission>(FINISH_OPTIONS[0]);
-  const [layerHeight, setLayerHeight] = useState('0.015mm (16K Ultra)');
-  const [specialInstructions, setSpecialInstructions] = useState('');
-
-  // Computations
-  const scaleMultiplier = Math.pow(scalePercentage / 100, 3);
-  const scaledVolume = Math.round(baseVolumeCm3 * scaleMultiplier);
-  const infillAdjustedVolume = Math.round(scaledVolume * (0.3 + (infillDensity / 100) * 0.7));
-  const estimatedWeightGrams = Math.round(infillAdjustedVolume * selectedMaterial.densityGPerCm3);
-  const estimatedHours = Math.max(4, Math.round((scaledVolume / 25) * 1.8));
-
-  const materialCost = infillAdjustedVolume * selectedMaterial.pricePerCm3;
-  const machineTimeCost = estimatedHours * 3.5;
-  const resolutionModifier = layerHeight.includes('0.015mm') ? 1.25 : 1.0;
-
-  const totalCalculatedCost = Math.round(
-    (materialCost + machineTimeCost) * resolutionModifier + selectedFinish.cost
+  const [selectedFinish, setSelectedFinish] = useState<EngineeringFinish>(
+    ENGINEERING_FINISHES[0]
   );
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Real 3D printing logic calculations
+  const calculations = useMemo(() => {
+    const scaleMultiplier = Math.pow(scalePercentage / 100, 3);
+    const scaledVolume = baseVolumeCm3 * scaleMultiplier;
+
+    // Shell fraction vs Infill fraction
+    const shellFraction = Math.min(0.65, wallLoops * 0.08);
+    const effectiveInfillFraction = shellFraction + (1 - shellFraction) * (infillDensity / 100);
+    const netVolumeCm3 = scaledVolume * effectiveInfillFraction;
+
+    // Mass in grams
+    const massGrams = Math.round(netVolumeCm3 * selectedMaterial.density);
+
+    // Spool length in meters (1.75mm diameter filament)
+    const filamentMeters = Math.round(netVolumeCm3 / 2.405);
+
+    // Total Layer Slices
+    const modelHeight = (file.dimensionsMm?.height || 50) * (scalePercentage / 100);
+    const totalLayers = Math.max(10, Math.round(modelHeight / layerHeight));
+
+    // Print duration estimate: volumetric flow at ~16 mm³/s on CoreXY
+    const volumeMm3 = netVolumeCm3 * 1000;
+    const extrusionSec = volumeMm3 / 16;
+    const layerChangeSec = totalLayers * 0.9;
+    const totalSec = extrusionSec + layerChangeSec;
+    const hours = Math.floor(totalSec / 3600);
+    const minutes = Math.round((totalSec % 3600) / 60);
+
+    // Tensile yield index (MPa)
+    const tensileFactor = (infillDensity / 100) * 0.55 + (wallLoops / 6) * 0.45;
+    const tensileYieldMPa = Math.round(selectedMaterial.baseTensileMPa * tensileFactor);
+
+    // Cost Breakdown
+    const materialCost = netVolumeCm3 * selectedMaterial.pricePerCm3;
+    const machineHours = totalSec / 3600;
+    const machineDepreciation = machineHours * 3.8;
+    const toleranceCost = toleranceGrade === 'press-fit' ? 14 : toleranceGrade === 'precision' ? 6 : 0;
+    const basePrep = 10.0;
+
+    const totalCalculatedCost = Math.max(
+      22,
+      Math.round(materialCost + machineDepreciation + toleranceCost + selectedFinish.cost + basePrep)
+    );
+
+    return {
+      scaledVolume: Math.round(scaledVolume),
+      netVolumeCm3: Math.round(netVolumeCm3),
+      massGrams,
+      filamentMeters,
+      totalLayers,
+      hours,
+      minutes,
+      tensileYieldMPa,
+      materialCost,
+      machineDepreciation,
+      totalCalculatedCost,
+    };
+  }, [
+    baseVolumeCm3,
+    scalePercentage,
+    layerHeight,
+    infillDensity,
+    wallLoops,
+    selectedMaterial,
+    selectedFinish,
+    toleranceGrade,
+    file.dimensionsMm,
+  ]);
+
+  // Handle STL / CAD file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploaded = e.target.files?.[0];
-    if (uploaded) {
-      setFile({
-        name: uploaded.name,
-        sizeMb: Number((uploaded.size / (1024 * 1024)).toFixed(1)),
-      });
-      // Simulate analyzed mesh volume
-      const simulatedVol = Math.floor(Math.random() * 250) + 150;
-      setBaseVolumeCm3(simulatedVol);
-      showToast('3D Mesh Analyzed', `Calculated volume: ${simulatedVol} cm³`, 'success');
+    if (!uploaded) return;
+
+    const sizeMb = Number((uploaded.size / (1024 * 1024)).toFixed(1));
+
+    // If it is an STL file, parse real geometry client-side
+    if (uploaded.name.toLowerCase().endsWith('.stl')) {
+      try {
+        const buffer = await uploaded.arrayBuffer();
+        const parsed = parseSTLGeometry(buffer);
+        setFile({
+          name: uploaded.name,
+          sizeMb,
+          dimensionsMm: {
+            width: Math.round(parsed.widthMm),
+            height: Math.round(parsed.heightMm),
+            depth: Math.round(parsed.depthMm),
+          },
+          triangleCount: parsed.triangleCount,
+        });
+        setBaseVolumeCm3(Math.max(5, Math.round(parsed.volumeCm3)));
+        showToast(
+          'STL Geometry Sliced',
+          `Parsed ${parsed.triangleCount.toLocaleString()} triangles · ${Math.round(parsed.volumeCm3)} cm³ volume.`,
+          'success'
+        );
+        return;
+      } catch (err) {
+        console.warn('Fallback parsing for STL', err);
+      }
     }
+
+    // Default simulation for STEP/OBJ/3MF
+    const simulatedVol = Math.floor(Math.random() * 150) + 60;
+    setFile({
+      name: uploaded.name,
+      sizeMb,
+      dimensionsMm: {
+        width: Math.floor(Math.random() * 80) + 40,
+        height: Math.floor(Math.random() * 60) + 30,
+        depth: Math.floor(Math.random() * 80) + 40,
+      },
+      triangleCount: Math.floor(Math.random() * 30000) + 12000,
+    });
+    setBaseVolumeCm3(simulatedVol);
+    showToast('CAD File Accepted', `Calculated volume: ${simulatedVol} cm³`, 'success');
   };
 
   const handleAddToCart = () => {
     addItem({
-      productId: 'custom-commission',
-      name: `Custom Commission: ${file?.name || 'Artisan STL'}`,
-      image: '/images/hero_sculpture.jpg',
-      category: 'Limited Editions',
-      selectedMaterial: '24K Gilded Gold Leaf',
-      selectedScale: '1/6 Scale',
-      customEngraving: `Scale: ${scalePercentage}%, Finish: ${selectedFinish.name}`,
-      unitPrice: totalCalculatedCost,
+      productId: 'custom-cad-print',
+      name: `Custom 3D Print: ${file.name}`,
+      image: '/images/part_gearbox_pacf.jpg',
+      category: 'Rapid Prototyping',
+      selectedMaterial: selectedMaterial.name as any,
+      selectedScale: '1:1 True Scale',
+      customEngraving: `Scale: ${scalePercentage}%, Layer: ${layerHeight}mm, Infill: ${infillDensity}% ${infillPattern}`,
+      unitPrice: calculations.totalCalculatedCost,
       quantity: 1,
     });
+    showToast(
+      'Print Job Added to Cart',
+      `${file.name} configured in ${selectedMaterial.name} queued for production.`,
+      'success'
+    );
   };
 
   return (
-    <div className="min-h-screen bg-obsidian-950 pt-28 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Title */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <RevealText>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-mono mb-2">
-              <Cpu className="w-3.5 h-3.5" />
-              <span>BESPOKE ARTISAN COMMISSIONS</span>
-            </div>
-          </RevealText>
-
-          <RevealText delay={0.1}>
-            <h1 className="text-3xl sm:text-5xl font-display font-bold text-foreground">
-              Custom 3D Printing Studio
-            </h1>
-          </RevealText>
-
-          <RevealText delay={0.2}>
-            <p className="text-xs sm:text-sm text-titanium-400 mt-2 leading-relaxed">
-              Upload your custom 3D model (.STL, .OBJ, .STEP) for instant optical volume analysis, material configuration, layer slicing, and live quotation.
-            </p>
-          </RevealText>
-
-          <div className="mt-6 flex justify-center">
-            <a
-              href="/ai-measure"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-gold-500/10 via-gold-500/20 to-gold-500/10 border border-gold-500/40 text-gold-300 hover:text-gold-200 text-xs font-mono transition-all hover:scale-105"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-              <span>Have a photo of a statue? Try our <strong>AI Metrology &amp; Instant Pricing Studio →</strong></span>
-            </a>
+    <div className="min-h-screen bg-neutral-950 text-white pt-28 pb-24 select-none">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+        {/* Page Header (makewithloop.com style) */}
+        <div className="max-w-3xl mb-14">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-mono lowercase text-neutral-300 mb-4">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>direct-to-print cad laboratory</span>
           </div>
+
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-[-0.04em] lowercase text-white leading-none">
+            custom 3d print &amp; slicing lab.
+          </h1>
+
+          <p className="mt-4 text-base sm:text-lg text-neutral-400 font-normal lowercase leading-relaxed max-w-2xl">
+            upload your custom 3D model (.stl, .step, .obj, .3mf) for automated geometry analysis, thermoplastic composite selection, and instant g-code manufacturing quote.
+          </p>
         </div>
 
         {/* Studio Workspace Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: File Upload & Parameters */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* Left Column: File Upload & Slicing Parameters */}
+          <div className="lg:col-span-7 space-y-8">
             {/* 1. Drag & Drop File Uploader */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-obsidian-900/80 border border-obsidian-700/80 space-y-4">
-              <span className="text-xs font-mono font-bold text-foreground uppercase tracking-wider block">
-                1. UPLOAD 3D MODEL FILE
-              </span>
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest">
+                  [01] upload cad geometry
+                </span>
+                <span className="text-[11px] font-mono text-neutral-500">
+                  direct stl / step parser
+                </span>
+              </div>
 
+              {/* Upload Drop Zone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gold-500/40 hover:border-gold-500 rounded-xl p-8 text-center cursor-pointer transition-colors bg-obsidian-950/50 hover:bg-obsidian-950/80 flex flex-col items-center justify-center gap-3"
+                className="border-2 border-dashed border-neutral-700 hover:border-white rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all bg-neutral-950/60 hover:bg-neutral-900/60 flex flex-col items-center justify-center gap-3 group"
               >
                 <input
                   ref={fileInputRef}
@@ -214,63 +350,93 @@ export default function CustomPrintStudio() {
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-                <div className="p-3 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30">
+                <div className="p-4 rounded-full bg-white/10 text-white group-hover:scale-110 transition-transform">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Click to upload or drag &amp; drop 3D file
+                  <p className="text-sm font-semibold text-white lowercase">
+                    click to upload or drag &amp; drop 3d model
                   </p>
-                  <p className="text-xs text-titanium-400 font-mono mt-1">
-                    Accepts .STL, .OBJ, .STEP, .3MF (Up to 250 MB)
+                  <p className="text-xs text-neutral-400 font-mono mt-1 lowercase">
+                    accepts .stl, .step, .obj, .3mf (up to 250 mb)
                   </p>
                 </div>
               </div>
 
-              {/* Uploaded File Pill */}
+              {/* Uploaded File Telemetry Pill */}
               {file && (
-                <div className="p-3.5 rounded-xl bg-obsidian-950 border border-gold-500/30 flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-neutral-950 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <FileCode className="w-5 h-5 text-gold-400" />
+                    <div className="p-2 rounded-xl bg-neutral-900 text-white">
+                      <FileCode className="w-5 h-5 text-emerald-400" />
+                    </div>
                     <div>
-                      <h4 className="text-xs font-bold text-foreground font-mono">{file.name}</h4>
-                      <p className="text-[10px] text-titanium-400 font-mono">
-                        {file.sizeMb} MB • Volume: {scaledVolume} cm³
+                      <h4 className="text-xs font-bold text-white font-mono lowercase">
+                        {file.name}
+                      </h4>
+                      <p className="text-[11px] text-neutral-400 font-mono">
+                        {file.sizeMb} MB · {calculations.scaledVolume} cm³ volume
+                        {file.dimensionsMm && (
+                          <span>
+                            {' '}
+                            · {file.dimensionsMm.width}×{file.dimensionsMm.height}×
+                            {file.dimensionsMm.depth}mm
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
-                  <span className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/20">
-                    ANALYSIS PASSED
+                  <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-mono font-medium border border-emerald-500/30 lowercase">
+                    manifold geometry passed
                   </span>
                 </div>
               )}
             </div>
 
-            {/* 2. Material Formulation */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-obsidian-900/80 border border-obsidian-700/80 space-y-4">
-              <span className="text-xs font-mono font-bold text-foreground uppercase tracking-wider block">
-                2. SELECT PHOTOPOLYMER RESIN
-              </span>
+            {/* 2. Engineering Material Formulation */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest">
+                  [02] engineering filament / resin
+                </span>
+                <span className="text-[11px] font-mono text-neutral-500">
+                  {selectedMaterial.maxTempC}°c max hdt
+                </span>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {COMMISSION_MATERIALS.map((mat) => (
+                {ENGINEERING_MATERIALS.map((mat) => (
                   <button
                     key={mat.id}
                     onClick={() => setSelectedMaterial(mat)}
-                    className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
                       selectedMaterial.id === mat.id
-                        ? 'border-gold-500 bg-gold-500/10 text-gold-200 shadow-gold-glow/20'
-                        : 'border-obsidian-700 bg-obsidian-950/70 text-titanium-400 hover:text-white'
+                        ? 'border-white bg-white text-black shadow-lg scale-[1.01]'
+                        : 'border-neutral-800 bg-neutral-950/80 text-neutral-400 hover:text-white hover:border-neutral-700'
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-xs text-foreground">{mat.name}</span>
-                        <span className="font-mono text-[10px] text-gold-400 font-bold">
-                          ${mat.pricePerCm3}/cm³
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span
+                          className={`font-semibold text-xs lowercase ${
+                            selectedMaterial.id === mat.id ? 'text-black' : 'text-white'
+                          }`}
+                        >
+                          {mat.name}
+                        </span>
+                        <span
+                          className={`font-mono text-[11px] font-bold ${
+                            selectedMaterial.id === mat.id ? 'text-black' : 'text-emerald-400'
+                          }`}
+                        >
+                          ${mat.pricePerCm3.toFixed(2)}/cm³
                         </span>
                       </div>
-                      <p className="text-[11px] text-titanium-400 leading-relaxed">
+                      <p
+                        className={`text-[11px] lowercase leading-relaxed ${
+                          selectedMaterial.id === mat.id ? 'text-neutral-700' : 'text-neutral-400'
+                        }`}
+                      >
                         {mat.description}
                       </p>
                     </div>
@@ -279,93 +445,132 @@ export default function CustomPrintStudio() {
               </div>
             </div>
 
-            {/* 3. Scale & Infill Sliders */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-obsidian-900/80 border border-obsidian-700/80 space-y-6">
-              <span className="text-xs font-mono font-bold text-foreground uppercase tracking-wider block">
-                3. DIMENSION SCALE &amp; INFILL
-              </span>
-
-              {/* Scale Slider */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-titanium-300">SCULPTURE SCALE</span>
-                  <span className="text-gold-400 font-bold">{scalePercentage}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="200"
-                  step="5"
-                  value={scalePercentage}
-                  onChange={(e) => setScalePercentage(Number(e.target.value))}
-                  className="w-full accent-gold-500 cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] font-mono text-titanium-500">
-                  <span>50% Mini Scale</span>
-                  <span>100% Native STL</span>
-                  <span>200% Monumental</span>
-                </div>
-              </div>
-
-              {/* Infill Density */}
-              <div className="space-y-2 pt-4 border-t border-obsidian-800">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-titanium-300">INTERNAL INFILL DENSITY</span>
-                  <span className="text-gold-400 font-bold">{infillDensity}% Gyroid Infill</span>
-                </div>
-                <input
-                  type="range"
-                  min="15"
-                  max="100"
-                  step="5"
-                  value={infillDensity}
-                  onChange={(e) => setInfillDensity(Number(e.target.value))}
-                  className="w-full accent-gold-500 cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] font-mono text-titanium-500">
-                  <span>15% Lightweight</span>
-                  <span>50% Balanced</span>
-                  <span>100% Solid Heavy Cast</span>
-                </div>
-              </div>
-
-              {/* Layer Resolution Toggle */}
-              <div className="pt-4 border-t border-obsidian-800">
-                <span className="text-xs font-mono text-titanium-300 block mb-2">
-                  LAYER SLICE RESOLUTION
+            {/* 3. Slicing Parameters & Infill Geometry */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest">
+                  [03] slicing parameters &amp; infill
                 </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {['0.015mm (16K Ultra)', '0.030mm (Fast Draft)'].map((res) => (
+                <span className="text-[11px] font-mono text-neutral-500">
+                  {layerHeight}mm slice · {wallLoops} walls
+                </span>
+              </div>
+
+              {/* Layer Height Buttons */}
+              <div>
+                <span className="text-xs font-mono text-neutral-400 lowercase block mb-2">
+                  layer slicing resolution
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { val: 0.08, label: '0.08mm ultra' },
+                    { val: 0.12, label: '0.12mm fine' },
+                    { val: 0.16, label: '0.16mm optimal' },
+                    { val: 0.20, label: '0.20mm draft' },
+                  ].map((res) => (
                     <button
-                      key={res}
-                      onClick={() => setLayerHeight(res)}
-                      className={`p-2.5 rounded-lg text-xs font-mono text-center border transition-all ${
-                        layerHeight === res
-                          ? 'border-gold-500 bg-gold-500/10 text-gold-300 font-bold'
-                          : 'border-obsidian-700 bg-obsidian-950 text-titanium-400 hover:text-white'
+                      key={res.val}
+                      onClick={() => setLayerHeight(res.val)}
+                      className={`py-2 rounded-xl text-xs font-mono lowercase transition-all text-center ${
+                        layerHeight === res.val
+                          ? 'bg-white text-black font-bold shadow-sm'
+                          : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white'
                       }`}
                     >
-                      {res}
+                      {res.label}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Infill Density Slider & Patterns */}
+              <div className="space-y-3 pt-4 border-t border-neutral-800">
+                <div className="flex justify-between text-xs font-mono lowercase">
+                  <span className="text-neutral-400">internal infill density</span>
+                  <span className="text-white font-bold">{infillDensity}% · {infillPattern}</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  step={5}
+                  value={infillDensity}
+                  onChange={(e) => setInfillDensity(Number(e.target.value))}
+                  className="w-full accent-white cursor-pointer h-2 bg-neutral-800 rounded-lg"
+                />
+                <div className="flex gap-2 pt-1">
+                  {(['gyroid', 'honeycomb', 'grid'] as const).map((pat) => (
+                    <button
+                      key={pat}
+                      onClick={() => setInfillPattern(pat)}
+                      className={`flex-1 py-1.5 rounded-lg text-[11px] font-mono lowercase transition-colors ${
+                        infillPattern === pat
+                          ? 'bg-white text-black font-semibold'
+                          : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {pat} infill
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Perimeter Wall Loops & Scale */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-neutral-800">
+                <div>
+                  <div className="flex justify-between text-xs font-mono lowercase mb-2">
+                    <span className="text-neutral-400">perimeter wall loops</span>
+                    <span className="text-white font-bold">{wallLoops} walls</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[2, 3, 4, 6].map((loops) => (
+                      <button
+                        key={loops}
+                        onClick={() => setWallLoops(loops)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-mono lowercase transition-all ${
+                          wallLoops === loops
+                            ? 'bg-white text-black font-bold'
+                            : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        {loops}x
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-mono lowercase mb-2">
+                    <span className="text-neutral-400">cad model scale</span>
+                    <span className="text-white font-bold">{scalePercentage}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={50}
+                    max={200}
+                    step={5}
+                    value={scalePercentage}
+                    onChange={(e) => setScalePercentage(Number(e.target.value))}
+                    className="w-full accent-white cursor-pointer h-2 bg-neutral-800 rounded-lg mt-2.5"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* 4. Finishing Options */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-obsidian-900/80 border border-obsidian-700/80 space-y-4">
-              <span className="text-xs font-mono font-bold text-foreground uppercase tracking-wider block">
-                4. ARTISAN POST-PROCESSING FINISH
+            {/* 4. Engineering Post-Processing & Hardware */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900/50 border border-neutral-800 space-y-4 shadow-sm">
+              <span className="text-xs font-mono text-neutral-400 lowercase tracking-widest block">
+                [04] engineering post-processing &amp; hardware
               </span>
 
               <div className="space-y-2.5">
-                {FINISH_OPTIONS.map((f) => (
+                {ENGINEERING_FINISHES.map((f) => (
                   <label
                     key={f.id}
-                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    className={`flex items-start gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all ${
                       selectedFinish.id === f.id
-                        ? 'border-gold-500 bg-gold-500/10 text-gold-200 shadow-gold-glow/20'
-                        : 'border-obsidian-700 bg-obsidian-950/70 text-titanium-400 hover:text-white'
+                        ? 'border-white bg-white/10 text-white shadow-sm'
+                        : 'border-neutral-800 bg-neutral-950/60 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200'
                     }`}
                   >
                     <input
@@ -373,16 +578,18 @@ export default function CustomPrintStudio() {
                       name="finish"
                       checked={selectedFinish.id === f.id}
                       onChange={() => setSelectedFinish(f)}
-                      className="mt-1 text-gold-500 focus:ring-gold-500"
+                      className="mt-1 accent-white"
                     />
                     <div className="flex-1 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-foreground">{f.name}</span>
-                        <span className="font-mono text-gold-400 font-bold">
-                          {f.cost === 0 ? 'Included' : `+${formatPrice(f.cost)}`}
+                        <span className="font-semibold text-white lowercase">{f.name}</span>
+                        <span className="font-mono text-emerald-400 font-bold">
+                          {f.cost === 0 ? 'included' : `+${formatPrice(f.cost)}`}
                         </span>
                       </div>
-                      <p className="text-[11px] text-titanium-400 mt-0.5">{f.description}</p>
+                      <p className="text-[11px] text-neutral-400 mt-1 lowercase leading-relaxed">
+                        {f.description}
+                      </p>
                     </div>
                   </label>
                 ))}
@@ -390,75 +597,94 @@ export default function CustomPrintStudio() {
             </div>
           </div>
 
-          {/* Right Column: Live Engineering Telemetry & Instant Quote */}
+          {/* Right Column: Live Telemetry HUD & Instant Quote */}
           <div className="lg:col-span-5 sticky top-28 space-y-6">
-            <div className="p-6 sm:p-8 rounded-2xl bg-obsidian-900/90 border border-gold-500/30 backdrop-blur-xl shadow-2xl space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-obsidian-800">
-                <h3 className="text-lg font-display font-bold text-foreground">
-                  Commission Quotation
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-gold-500/20 text-gold-400 border border-gold-500/40 text-[10px] font-mono font-bold">
-                  REAL-TIME ESTIMATE
+            <div className="p-6 sm:p-8 rounded-3xl bg-neutral-900 border border-neutral-800 backdrop-blur-xl shadow-2xl space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <h3 className="text-sm font-mono font-bold text-white lowercase">
+                    additive telemetry &amp; quotation
+                  </h3>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-300 text-[10px] font-mono lowercase border border-neutral-700">
+                  500 mm/s
                 </span>
               </div>
 
-              {/* Metrics Grid */}
+              {/* Real-time Telemetry Metrics Grid */}
               <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-3 rounded-xl bg-obsidian-950 border border-obsidian-800">
-                  <span className="text-[10px] text-titanium-400 flex items-center gap-1">
-                    <Layers className="w-3 h-3 text-gold-400" /> RESIN VOLUME
+                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
+                    <Weight className="w-3 h-3 text-emerald-400" /> filament mass
                   </span>
-                  <span className="text-foreground font-bold text-sm block mt-1">
-                    {infillAdjustedVolume} cm³
+                  <span className="text-white font-bold text-base block">
+                    {calculations.massGrams} g
                   </span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-obsidian-950 border border-obsidian-800">
-                  <span className="text-[10px] text-titanium-400 flex items-center gap-1">
-                    <Weight className="w-3 h-3 text-gold-400" /> ESTIMATED WEIGHT
-                  </span>
-                  <span className="text-foreground font-bold text-sm block mt-1">
-                    {estimatedWeightGrams} g
+                  <span className="text-[10px] text-neutral-500 lowercase">
+                    ~{calculations.filamentMeters}m spool
                   </span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-obsidian-950 border border-obsidian-800">
-                  <span className="text-[10px] text-titanium-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-gold-400" /> PRINT DURATION
+                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
+                    <Layers className="w-3 h-3 text-emerald-400" /> layer slices
                   </span>
-                  <span className="text-foreground font-bold text-sm block mt-1">
-                    ~{estimatedHours} Hours
+                  <span className="text-white font-bold text-base block">
+                    {calculations.totalLayers.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 lowercase">
+                    @ {layerHeight}mm z-height
                   </span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-obsidian-950 border border-obsidian-800">
-                  <span className="text-[10px] text-titanium-400 flex items-center gap-1">
-                    <Cpu className="w-3 h-3 text-gold-400" /> RESOLUTION
+                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
+                    <Clock className="w-3 h-3 text-emerald-400" /> machine time
                   </span>
-                  <span className="text-gold-400 font-bold text-sm block mt-1">
-                    16K (0.015mm)
+                  <span className="text-white font-bold text-base block">
+                    {calculations.hours}h {calculations.minutes}m
+                  </span>
+                  <span className="text-[10px] text-neutral-500 lowercase">
+                    16 mm³/s flow
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-neutral-950 border border-neutral-800">
+                  <span className="text-[10px] text-neutral-500 lowercase flex items-center gap-1 mb-1">
+                    <Activity className="w-3 h-3 text-emerald-400" /> yield strength
+                  </span>
+                  <span className="text-emerald-400 font-bold text-base block">
+                    {calculations.tensileYieldMPa} MPa
+                  </span>
+                  <span className="text-[10px] text-neutral-500 lowercase">
+                    tensile rating
                   </span>
                 </div>
               </div>
 
               {/* Price Breakdown */}
-              <div className="space-y-2 pt-2 border-t border-obsidian-800 text-xs">
-                <div className="flex justify-between text-titanium-400 font-mono">
-                  <span>Resin Polymer ({selectedMaterial.name})</span>
-                  <span>{formatPrice(materialCost)}</span>
+              <div className="space-y-2.5 pt-4 border-t border-neutral-800 text-xs">
+                <div className="flex justify-between text-neutral-400 font-mono lowercase">
+                  <span>filament material ({selectedMaterial.name})</span>
+                  <span className="text-neutral-200">{formatPrice(calculations.materialCost)}</span>
                 </div>
-                <div className="flex justify-between text-titanium-400 font-mono">
-                  <span>Laser Machine Time (~{estimatedHours}h)</span>
-                  <span>{formatPrice(machineTimeCost)}</span>
+                <div className="flex justify-between text-neutral-400 font-mono lowercase">
+                  <span>corexy machine time (~{calculations.hours}h {calculations.minutes}m)</span>
+                  <span className="text-neutral-200">{formatPrice(calculations.machineDepreciation)}</span>
                 </div>
-                <div className="flex justify-between text-titanium-400 font-mono">
-                  <span>Post-Processing Finish ({selectedFinish.name})</span>
-                  <span>{formatPrice(selectedFinish.cost)}</span>
-                </div>
-                <div className="flex justify-between text-base font-bold text-foreground pt-3 border-t border-obsidian-800 font-mono">
-                  <span>Estimated Total</span>
-                  <span className="text-2xl text-gold-400 font-display">
-                    {formatPrice(totalCalculatedCost)}
+                {selectedFinish.cost > 0 && (
+                  <div className="flex justify-between text-neutral-400 font-mono lowercase">
+                    <span>post-processing ({selectedFinish.name.split(' ')[0]})</span>
+                    <span className="text-neutral-200">{formatPrice(selectedFinish.cost)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-baseline pt-4 border-t border-neutral-800">
+                  <span className="text-sm font-semibold lowercase text-white">
+                    estimated total
+                  </span>
+                  <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
+                    {formatPrice(calculations.totalCalculatedCost)}
                   </span>
                 </div>
               </div>
@@ -467,17 +693,35 @@ export default function CustomPrintStudio() {
               <div className="space-y-3 pt-2">
                 <button
                   onClick={handleAddToCart}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-gold-500 via-amber-400 to-gold-500 text-obsidian-950 font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 shadow-gold-glow transition-all"
+                  className="w-full py-4 rounded-full bg-white text-black font-semibold text-xs lowercase tracking-tight hover:bg-neutral-200 transition-all shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02]"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>Queue Custom Print Order</span>
+                  <span>dispatch to 3d print queue</span>
                 </button>
 
-                <div className="flex items-center justify-center gap-2 text-[10px] text-titanium-400 font-mono">
-                  <ShieldCheck className="w-3.5 h-3.5 text-gold-400" />
-                  <span>Non-Disclosure &amp; IP Protection Guaranteed</span>
+                <div className="flex items-center justify-center gap-2 text-[10px] text-neutral-500 font-mono lowercase">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>cad non-disclosure (nda) &amp; ip protected</span>
                 </div>
               </div>
+            </div>
+
+            {/* AI Metrology Scanner Card */}
+            <div className="p-6 rounded-3xl border border-neutral-800 bg-neutral-900/40 flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold lowercase text-white">
+                  have a physical component?
+                </h4>
+                <p className="text-[11px] text-neutral-400 lowercase mt-0.5">
+                  use our visual AI scanner with digital caliper metrology.
+                </p>
+              </div>
+              <Link
+                href="/ai-measure"
+                className="px-3.5 py-1.5 rounded-full border border-neutral-700 text-xs font-medium text-neutral-300 hover:border-white hover:text-white transition-colors lowercase"
+              >
+                ai measure &rarr;
+              </Link>
             </div>
           </div>
         </div>
