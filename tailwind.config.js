@@ -46,8 +46,8 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-cinzel)', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'var(--font-outfit)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-sans)', 'var(--font-outfit)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-space-mono)', 'monospace'],
       },
       backgroundImage: {

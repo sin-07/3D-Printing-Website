@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/context/ToastContext';
-import { Sparkles, Shield, Box, Send, Globe, Award, Layers, CheckCircle } from 'lucide-react';
+import { Shield, Box, Send, Award, CheckCircle, Flame, Layers, Cpu, Wrench } from 'lucide-react';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
@@ -14,213 +14,202 @@ export default function Footer() {
     e.preventDefault();
     if (email) {
       setIsSubscribed(true);
-      showToast('VIP Drop Access Confirmed', 'You will receive priority access 2 hours before general public.', 'gold');
+      showToast('Priority Queue Confirmed', 'You will receive priority access for upcoming machine capacity allocations.', 'gold');
       setEmail('');
     }
   };
 
   return (
-    <footer className="relative bg-obsidian-950 border-t border-gold-500/20 pt-16 pb-12 overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Top Guarantee Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-12 border-b border-obsidian-800">
-          <div className="p-4 rounded-xl bg-obsidian-900/60 border border-obsidian-800 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-gold-500/10 border border-gold-500/30 text-gold-400">
-              <Sparkles className="w-5 h-5" />
+    <footer className="relative bg-neutral-950 border-t border-neutral-900 pt-16 pb-12 overflow-hidden text-white select-none">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
+        {/* Top Guarantee Cards (Minimalist Monochrome) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-12 border-b border-neutral-900">
+          <div className="p-4 rounded-2xl bg-neutral-900/40 border border-neutral-850 flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-neutral-800 text-emerald-400 flex items-center justify-center shrink-0">
+              <Cpu className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-foreground">16K SLA Photopolymer</h4>
-              <p className="text-[11px] text-titanium-400 mt-0.5">
-                0.015mm layer slicing with imperceptible surface layering.
+              <h4 className="text-xs font-medium text-white lowercase">500 mm/s corexy</h4>
+              <p className="text-[11px] text-neutral-400 mt-0.5 lowercase">
+                resonance-compensated motion with 20,000 mm/s² acceleration.
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-obsidian-900/60 border border-obsidian-800 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-gold-500/10 border border-gold-500/30 text-gold-400">
-              <Award className="w-5 h-5" />
+          <div className="p-4 rounded-2xl bg-neutral-900/40 border border-neutral-850 flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-neutral-800 text-amber-400 flex items-center justify-center shrink-0">
+              <Wrench className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-foreground">Serialized Authenticity</h4>
-              <p className="text-[11px] text-titanium-400 mt-0.5">
-                Every unit includes an embedded cryptographic NFC metal card.
+              <h4 className="text-xs font-medium text-white lowercase">±0.01mm metrology</h4>
+              <p className="text-[11px] text-neutral-400 mt-0.5 lowercase">
+                caliper-verified bearing bores and sub-millimeter tolerances.
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-obsidian-900/60 border border-obsidian-800 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-gold-500/10 border border-gold-500/30 text-gold-400">
-              <Box className="w-5 h-5" />
+          <div className="p-4 rounded-2xl bg-neutral-900/40 border border-neutral-850 flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-neutral-800 text-blue-400 flex items-center justify-center shrink-0">
+              <Flame className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-foreground">Hard-Shell Flight Crates</h4>
-              <p className="text-[11px] text-titanium-400 mt-0.5">
-                Custom laser-cut EVA foam cases for 100% damage-proof transit.
+              <h4 className="text-xs font-medium text-white lowercase">300°c carbon composites</h4>
+              <p className="text-[11px] text-neutral-400 mt-0.5 lowercase">
+                pa-cf and petg-cf filaments delivering 115 mpa tensile strength.
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-obsidian-900/60 border border-obsidian-800 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-gold-500/10 border border-gold-500/30 text-gold-400">
-              <Shield className="w-5 h-5" />
+          <div className="p-4 rounded-2xl bg-neutral-900/40 border border-neutral-850 flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-neutral-800 text-white flex items-center justify-center shrink-0">
+              <Layers className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-foreground">White-Glove Guarantee</h4>
-              <p className="text-[11px] text-titanium-400 mt-0.5">
-                Full replacement insurance on all worldwide crated shipments.
+              <h4 className="text-xs font-medium text-white lowercase">direct-to-print cad</h4>
+              <p className="text-[11px] text-neutral-400 mt-0.5 lowercase">
+                instant automated slicing and quoting from step, stl, and obj files.
               </p>
             </div>
           </div>
         </div>
 
         {/* Main Footer Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 py-12 border-b border-obsidian-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 py-12 border-b border-neutral-900">
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-400 via-gold-600 to-obsidian-900 p-0.5">
-                <div className="w-full h-full bg-obsidian-950 rounded-[6px] flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-gold-400" />
-                </div>
-              </div>
-              <span className="font-display font-bold tracking-[0.2em] text-foreground text-lg">
-                AETHERIS ATELIER
-              </span>
+            <Link href="/" className="flex items-center gap-2 text-2xl font-bold tracking-tight lowercase text-white">
+              <span>aetheris</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>
             </Link>
 
-            <p className="text-xs text-titanium-400 max-w-sm leading-relaxed">
-              Pioneering hyper-detailed 3D sculpture engineering. Merging aerospace-grade photopolymers, Florentine gilding, and fine arts master sculpting.
+            <p className="text-xs text-neutral-400 max-w-sm leading-relaxed lowercase">
+              high-precision 3d printing and additive manufacturing. carbon fiber composites, 0.01mm metrology, and direct cad-to-gcode slicing.
             </p>
 
-            <div className="flex items-center gap-3 text-xs text-titanium-400 font-mono">
-              <span className="flex items-center gap-1">
-                <Globe className="w-3.5 h-3.5 text-gold-400" /> Atelier: Kyoto &amp; Zurich
-              </span>
+            <div className="flex items-center gap-3 text-xs text-neutral-500 font-mono lowercase">
+              <span>print lab: cell 01 - 12</span>
               <span>•</span>
-              <span>16K SLA Lab 405nm</span>
+              <span>corexy &amp; 16k sla</span>
             </div>
           </div>
 
-          {/* Nav Links */}
+          {/* Collections */}
           <div>
-            <h4 className="text-xs font-mono font-bold text-gold-400 tracking-wider uppercase mb-3">
-              Collections
+            <h4 className="text-xs font-mono font-medium text-neutral-400 lowercase tracking-wider mb-3.5">
+              engineering catalog
             </h4>
-            <ul className="space-y-2 text-xs text-titanium-300">
+            <ul className="space-y-2 text-xs text-neutral-400 lowercase">
               <li>
-                <Link href="/shop" className="hover:text-gold-300 transition-colors">
-                  Mythology &amp; Seraphs
+                <Link href="/shop" className="hover:text-white transition-colors">
+                  functional mechanisms
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="hover:text-gold-300 transition-colors">
-                  Cyberpunk &amp; Neo-Tokyo
+                <Link href="/shop" className="hover:text-white transition-colors">
+                  aerospace &amp; drone frames
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="hover:text-gold-300 transition-colors">
-                  Eldritch &amp; Dark Gothic
+                <Link href="/shop" className="hover:text-white transition-colors">
+                  industrial tooling &amp; soft jaws
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="hover:text-gold-300 transition-colors">
-                  Museum Busts &amp; Kintsugi
+                <Link href="/shop" className="hover:text-white transition-colors">
+                  carbon fiber pa-cf parts
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="hover:text-gold-300 transition-colors">
-                  Vault Limited Drops
+                <Link href="/shop" className="hover:text-white transition-colors">
+                  flexible tpu end-effectors
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Atelier Services */}
+          {/* Slicer & Services */}
           <div>
-            <h4 className="text-xs font-mono font-bold text-gold-400 tracking-wider uppercase mb-3">
-              Atelier Services
+            <h4 className="text-xs font-mono font-medium text-neutral-400 lowercase tracking-wider mb-3.5">
+              additive services
             </h4>
-            <ul className="space-y-2 text-xs text-titanium-300">
+            <ul className="space-y-2 text-xs text-neutral-400 lowercase">
               <li>
-                <Link href="/custom-print" className="hover:text-gold-300 transition-colors">
-                  Custom 3D Commission Lab
+                <Link href="/custom-print" className="hover:text-white transition-colors">
+                  instant cad upload &amp; quote
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-gold-300 transition-colors">
-                  16K Photopolymer Tech
+                <Link href="/#live-slicer" className="hover:text-white transition-colors">
+                  live 3d slicer engine
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-gold-300 transition-colors">
-                  Hand-Gilding Process
+                <Link href="/#features" className="hover:text-white transition-colors">
+                  300°c hotend &amp; chamber specs
                 </Link>
               </li>
               <li>
-                <Link href="/wishlist" className="hover:text-gold-300 transition-colors">
-                  Collector Saved Vault
+                <Link href="/#precision" className="hover:text-white transition-colors">
+                  metrology &amp; tolerance sheet
                 </Link>
               </li>
               <li>
-                <Link href="/cart" className="hover:text-gold-300 transition-colors">
-                  Crated Shipping Tracker
+                <Link href="/cart" className="hover:text-white transition-colors">
+                  production batch tracking
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* VIP Newsletter */}
+          {/* Priority Queue Access */}
           <div>
-            <h4 className="text-xs font-mono font-bold text-gold-400 tracking-wider uppercase mb-3">
-              VIP Drop Access
+            <h4 className="text-xs font-mono font-medium text-neutral-400 lowercase tracking-wider mb-3.5">
+              production priority
             </h4>
-            <p className="text-xs text-titanium-400 mb-3">
-              Receive private reservation links 2 hours before limited runs are opened.
+            <p className="text-xs text-neutral-400 mb-3 lowercase">
+              receive priority machine cell queue and volume batch pricing updates.
             </p>
             {isSubscribed ? (
-              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span>Priority Access Activated</span>
+              <div className="p-2.5 rounded-xl bg-neutral-900 border border-neutral-800 text-white text-xs flex items-center gap-1.5 lowercase">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>priority queue confirmed</span>
               </div>
             ) : (
               <form onSubmit={handleSubscribe} className="space-y-2">
-                <div className="relative">
+                <div className="flex items-center rounded-full border border-neutral-800 bg-neutral-900/80 px-3 py-1.5 focus-within:border-neutral-500 transition-colors">
                   <input
                     type="email"
-                    required
-                    placeholder="collector@domain.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-obsidian-900 border border-obsidian-700 rounded-lg text-foreground placeholder-titanium-500 focus:outline-none focus:border-gold-500/50"
+                    placeholder="enter your engineering email"
+                    required
+                    className="w-full bg-transparent text-xs text-white placeholder:text-neutral-500 focus:outline-none lowercase px-1"
                   />
                   <button
                     type="submit"
-                    className="absolute right-1 top-1 bottom-1 px-2.5 bg-gold-500 text-obsidian-950 rounded-md font-bold hover:brightness-110 transition-colors"
+                    className="p-1 rounded-full text-neutral-400 hover:text-white transition-colors"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <p className="text-[10px] text-titanium-500">
-                  Strictly zero spam. Maximum 1 notification per exclusive drop.
-                </p>
               </form>
             )}
           </div>
         </div>
 
-        {/* Bottom copyright & certification */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-titanium-400 font-mono">
-          <p>© 2026 AETHERIS 3D ATELIER. All rights reserved.</p>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>16K SLA CERTIFIED</span>
-            <span>•</span>
-            <span>NFC CRYPTO KEYS</span>
-            <span>•</span>
-            <span>BIODEGRADABLE BIO-RESIN COMPLIANT</span>
+        {/* Copyright & Disclaimer */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500 font-mono lowercase">
+          <p>© 2026 aetheris additive systems inc. all rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/about" className="hover:text-neutral-400 transition-colors">
+              machine telemetry api
+            </Link>
+            <Link href="/about" className="hover:text-neutral-400 transition-colors">
+              material safety data (msds)
+            </Link>
+            <Link href="/about" className="hover:text-neutral-400 transition-colors">
+              din en iso 9001
+            </Link>
           </div>
         </div>
       </div>

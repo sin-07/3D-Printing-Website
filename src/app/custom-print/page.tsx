@@ -181,6 +181,16 @@ export default function CustomPrintStudio() {
               Upload your custom 3D model (.STL, .OBJ, .STEP) for instant optical volume analysis, material configuration, layer slicing, and live quotation.
             </p>
           </RevealText>
+
+          <div className="mt-6 flex justify-center">
+            <a
+              href="/ai-measure"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-gold-500/10 via-gold-500/20 to-gold-500/10 border border-gold-500/40 text-gold-300 hover:text-gold-200 text-xs font-mono transition-all hover:scale-105"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-gold-400" />
+              <span>Have a photo of a statue? Try our <strong>AI Metrology &amp; Instant Pricing Studio →</strong></span>
+            </a>
+          </div>
         </div>
 
         {/* Studio Workspace Layout */}

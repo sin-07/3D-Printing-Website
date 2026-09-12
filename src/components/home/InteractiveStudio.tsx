@@ -2,85 +2,75 @@
 
 import React from 'react';
 import StatueViewer from '@/components/3d/StatueViewer';
-import RevealText from '@/components/animations/RevealText';
-import { Sparkles, Layers, ShieldCheck, Cpu } from 'lucide-react';
+import { Layers, ShieldCheck, Cpu, Sliders, Activity } from 'lucide-react';
 
 export default function InteractiveStudio() {
   return (
-    <section className="py-20 bg-obsidian-950 relative overflow-hidden border-t border-b border-obsidian-800">
-      {/* Background radial glow */}
-      <div className="absolute top-1/2 right-10 w-[500px] h-[500px] bg-gold-500/5 rounded-full blur-[140px] pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section className="py-24 bg-neutral-950 relative overflow-hidden border-t border-neutral-900 select-none text-white">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         {/* Section Title */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <RevealText>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-mono mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>THE 3D MATERIAL LAB</span>
-            </div>
-          </RevealText>
-
-          <RevealText delay={0.1}>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-foreground">
-              Explore Our Signature <br />
-              <span className="bg-gradient-to-r from-gold-300 via-gold-400 to-amber-500 bg-clip-text text-transparent">
-                Resin &amp; Metal Finishes
-              </span>
-            </h2>
-          </RevealText>
-
-          <RevealText delay={0.2}>
-            <p className="text-xs sm:text-sm text-titanium-400 mt-3 leading-relaxed">
-              Interact with our real-time 3D turntable viewer. Toggle between 24K Gilded Gold Leaf, Obsidian Onyx, Antique Bronze Patina, and Cyberpunk Chameleon Chromes under studio illumination.
-            </p>
-          </RevealText>
+          <span className="text-xs font-mono text-neutral-500 lowercase tracking-widest block mb-2">
+            real-time kinematics &amp; toolpath inspection
+          </span>
+          <h2 className="text-3xl sm:text-5xl font-medium tracking-tight text-white lowercase">
+            3d printed mechanical assembly
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-3 leading-relaxed lowercase max-w-xl mx-auto">
+            rotate our real-time 3d turntable to inspect print-in-place planetary gear teeth, extrusion wall perimeters, and layer-by-layer slicing across engineering composites.
+          </p>
         </div>
 
-        {/* 3D Statue Viewer Turntable */}
+        {/* 3D Part Viewer Turntable */}
         <div className="max-w-5xl mx-auto">
           <StatueViewer
-            initialMaterial="24K Gilded Gold Leaf"
+            initialMaterial="Carbon Fiber PA-CF"
             height="520px"
-            className="shadow-2xl border-gold-500/30"
+            className="border-neutral-800"
           />
         </div>
 
         {/* Feature Cards below 3D */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-10">
-          <div className="p-5 rounded-xl bg-obsidian-900/60 border border-obsidian-800">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gold-500/10 text-gold-400">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-8">
+          <div className="p-6 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 hover:border-neutral-700 transition-colors">
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="p-2 rounded-lg bg-neutral-800 text-emerald-400">
                 <Cpu className="w-4 h-4" />
               </div>
-              <h4 className="text-xs font-bold text-foreground">16K Optical Matrix</h4>
+              <h4 className="text-sm font-semibold text-white lowercase">
+                print-in-place kinematics
+              </h4>
             </div>
-            <p className="text-xs text-titanium-400 leading-relaxed">
-              Photons focused through quartz optical lenses eliminate pixel step distortion even on razor-sharp wing feathers and armor edges.
+            <p className="text-xs text-neutral-400 lowercase leading-relaxed">
+              0.18mm kinematic clearance allows all three compound planetary gears to rotate freely directly from the build plate without fasteners or manual assembly.
             </p>
           </div>
 
-          <div className="p-5 rounded-xl bg-obsidian-900/60 border border-obsidian-800">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gold-500/10 text-gold-400">
+          <div className="p-6 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 hover:border-neutral-700 transition-colors">
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="p-2 rounded-lg bg-neutral-800 text-amber-400">
                 <Layers className="w-4 h-4" />
               </div>
-              <h4 className="text-xs font-bold text-foreground">Multi-Stage UV Annealing</h4>
+              <h4 className="text-sm font-semibold text-white lowercase">
+                adaptive layer heights
+              </h4>
             </div>
-            <p className="text-xs text-titanium-400 leading-relaxed">
-              Thermal chamber baking and nitrogen bath UV exposure permanently stabilize resin polymers against warping, UV yellowing, or brittle wear.
+            <p className="text-xs text-neutral-400 lowercase leading-relaxed">
+              micro-stepping down to 0.08mm eliminates layer staircasing on curved tooth profiles while thicker 0.20mm core infill slashes total print duration by 45%.
             </p>
           </div>
 
-          <div className="p-5 rounded-xl bg-obsidian-900/60 border border-obsidian-800">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gold-500/10 text-gold-400">
-                <ShieldCheck className="w-4 h-4" />
+          <div className="p-6 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 hover:border-neutral-700 transition-colors">
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="p-2 rounded-lg bg-neutral-800 text-blue-400">
+                <Activity className="w-4 h-4" />
               </div>
-              <h4 className="text-xs font-bold text-foreground">Hand-Gilded by Artisans</h4>
+              <h4 className="text-sm font-semibold text-white lowercase">
+                carbon fiber reinforced
+              </h4>
             </div>
-            <p className="text-xs text-titanium-400 leading-relaxed">
-              Each limited run is hand-inspected, airbrushed with custom automotive pigments, and accented with real Florentine 24K gold leaf.
+            <p className="text-xs text-neutral-400 lowercase leading-relaxed">
+              20% chopped carbon fiber matrix yields 115 MPa tensile strength and 180°C heat deflection, delivering exceptional continuous torque rating up to 45 Nm.
             </p>
           </div>
         </div>

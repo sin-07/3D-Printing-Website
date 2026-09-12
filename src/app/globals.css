@@ -2,11 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
 :root {
-  --font-outfit: 'Outfit', sans-serif;
-  --font-cinzel: 'Cinzel', serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', sans-serif;
   --font-space-mono: 'Space Mono', monospace;
 }
 
@@ -16,14 +16,14 @@
 
 html {
   scroll-behavior: smooth;
-  background-color: #08080a;
+  background-color: #000000;
   color: #f4f4f5;
 }
 
 body {
-  background-color: #08080a;
+  background-color: #000000;
   color: #f4f4f5;
-  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

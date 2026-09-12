@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { MaterialFinish } from '@/types';
-import { RotateCw, Sun, Eye, Zap, Layers, Sparkles } from 'lucide-react';
+import { RotateCw, Layers, Sparkles, Sliders, Cpu, Eye } from 'lucide-react';
 
 interface StatueViewerProps {
   initialMaterial?: MaterialFinish;
@@ -13,206 +13,298 @@ interface StatueViewerProps {
 }
 
 export default function StatueViewer({
-  initialMaterial = '24K Gilded Gold Leaf',
+  initialMaterial = 'Carbon Fiber PA-CF',
   height = '500px',
   className = '',
 }: StatueViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [activeMaterial, setActiveMaterial] = useState<MaterialFinish>(initialMaterial);
-  const [lightingMode, setLightingMode] = useState<'gold' | 'cyber' | 'noir'>('gold');
+  const [viewMode, setViewMode] = useState<'solid' | 'toolpath' | 'infill' | 'wireframe'>('solid');
   const [isAutoRotate, setIsAutoRotate] = useState<boolean>(true);
-  const [isWireframe, setIsWireframe] = useState<boolean>(false);
   const [showLaserScan, setShowLaserScan] = useState<boolean>(true);
+  const [sliceHeightPercent, setSliceHeightPercent] = useState<number>(100);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const meshGroupRef = useRef<THREE.Group | null>(null);
-  const lightsGroupRef = useRef<THREE.Group | null>(null);
-  const materialsMapRef = useRef<Record<string, THREE.Material>>({});
+  const masterGroupRef = useRef<THREE.Group | null>(null);
+  const sunGearRef = useRef<THREE.Mesh | null>(null);
+  const planetGearsRef = useRef<THREE.Group[]>([]);
+  const toolpathGroupRef = useRef<THREE.Group | null>(null);
+  const infillGroupRef = useRef<THREE.Group | null>(null);
+  const clipPlaneRef = useRef<THREE.Plane | null>(null);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
-    const width = mount.clientWidth;
+    while (mount.firstChild) {
+      mount.removeChild(mount.firstChild);
+    }
+
+    const width = mount.clientWidth || 800;
     const heightPx = mount.clientHeight || 500;
 
-    // Scene
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // Camera
     const camera = new THREE.PerspectiveCamera(45, width / heightPx, 0.1, 100);
-    camera.position.set(0, 0.5, 4.2);
+    camera.position.set(0, 1.8, 4.2);
+    camera.lookAt(0, 0, 0);
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, heightPx);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.3;
+    renderer.localClippingEnabled = true;
     rendererRef.current = renderer;
     mount.appendChild(renderer.domElement);
 
-    // Master Group
+    // Master Group for rotation
     const masterGroup = new THREE.Group();
-    meshGroupRef.current = masterGroup;
+    masterGroupRef.current = masterGroup;
     scene.add(masterGroup);
 
     // Lights
-    const lightsGroup = new THREE.Group();
-    lightsGroupRef.current = lightsGroup;
-    scene.add(lightsGroup);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.1);
+    scene.add(ambientLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    lightsGroup.add(ambientLight);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    keyLight.position.set(4, 5, 4);
+    scene.add(keyLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffe8b4, 2.5);
-    keyLight.position.set(3, 4, 3);
-    lightsGroup.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0x60a5fa, 1.0);
+    fillLight.position.set(-4, 3, -3);
+    scene.add(fillLight);
 
-    const rimLight = new THREE.PointLight(0xd4af37, 4, 10);
-    rimLight.position.set(-3, 2, -2);
-    lightsGroup.add(rimLight);
+    const rimLight = new THREE.PointLight(0xf59e0b, 2.5, 8);
+    rimLight.position.set(0, -2, 3);
+    scene.add(rimLight);
 
-    const blueFill = new THREE.DirectionalLight(0x00f0ff, 1.2);
-    blueFill.position.set(0, -3, 2);
-    lightsGroup.add(blueFill);
-
-    // Generate Materials
-    const materials: Record<string, THREE.MeshStandardMaterial> = {
-      'Obsidian Onyx': new THREE.MeshStandardMaterial({
-        color: 0x121217,
-        roughness: 0.25,
-        metalness: 0.85,
-      }),
-      'Antique Bronze Patina': new THREE.MeshStandardMaterial({
-        color: 0x6e563b,
-        roughness: 0.45,
-        metalness: 0.75,
-      }),
-      'Iridescent Cyber Chrome': new THREE.MeshStandardMaterial({
-        color: 0x90e0ef,
-        roughness: 0.1,
-        metalness: 0.95,
-      }),
-      'Alabaster White SLA': new THREE.MeshStandardMaterial({
-        color: 0xf5f5f7,
-        roughness: 0.35,
-        metalness: 0.1,
-      }),
-      '24K Gilded Gold Leaf': new THREE.MeshStandardMaterial({
-        color: 0xd4af37,
-        roughness: 0.2,
-        metalness: 0.9,
-      }),
-      'Raw Translucent Resin': new THREE.MeshStandardMaterial({
-        color: 0xa855f7,
-        roughness: 0.15,
-        metalness: 0.3,
-        transparent: true,
-        opacity: 0.85,
-      }),
-    };
-    materialsMapRef.current = materials;
-
-    const activeMat = materials[activeMaterial] || materials['24K Gilded Gold Leaf'];
-
-    // Construct Masterpiece 3D Geometry
-    // 1. Central Core Torus / Heraldic Crest
-    const coreGeo = new THREE.TorusKnotGeometry(0.7, 0.22, 128, 32, 2, 3);
-    const coreMesh = new THREE.Mesh(coreGeo, activeMat);
-    masterGroup.add(coreMesh);
-
-    // 2. Halo Rings
-    const ringGeo = new THREE.TorusGeometry(1.25, 0.02, 16, 100);
-    const ringMat = new THREE.MeshStandardMaterial({
-      color: 0xd4af37,
-      metalness: 0.95,
-      roughness: 0.1,
+    // 1. Textured Magnetic PEI Build Plate
+    const bedGeo = new THREE.BoxGeometry(3.2, 0.04, 3.2);
+    const bedMat = new THREE.MeshStandardMaterial({
+      color: 0x18181b,
+      roughness: 0.85,
+      metalness: 0.3,
     });
-    const ringMesh1 = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh1.rotation.x = Math.PI / 3;
-    masterGroup.add(ringMesh1);
+    const bedMesh = new THREE.Mesh(bedGeo, bedMat);
+    bedMesh.position.y = -0.9;
+    masterGroup.add(bedMesh);
 
-    const ringMesh2 = new THREE.Mesh(ringGeo, ringMat);
-    ringMesh2.rotation.y = Math.PI / 3;
-    masterGroup.add(ringMesh2);
+    // Bed Grid Lines
+    const gridHelper = new THREE.GridHelper(3.0, 20, 0x52525b, 0x27272a);
+    gridHelper.position.y = -0.87;
+    masterGroup.add(gridHelper);
 
-    // 3. Ornate Pedestal
-    const pedestalGeo = new THREE.CylinderGeometry(0.9, 1.1, 0.35, 8);
-    const pedestalMat = new THREE.MeshStandardMaterial({
-      color: 0x18181f,
+    // Clipping plane for Slicer Layer Simulation
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.5);
+    clipPlaneRef.current = clipPlane;
+
+    // Helper: Gear Mesh Generator with teeth
+    const createGearGeometry = (radius: number, teeth: number, depth: number) => {
+      const shape = new THREE.Shape();
+      const toothDepth = 0.12;
+      for (let i = 0; i < teeth; i++) {
+        const angle1 = (i / teeth) * Math.PI * 2;
+        const angle2 = ((i + 0.3) / teeth) * Math.PI * 2;
+        const angle3 = ((i + 0.6) / teeth) * Math.PI * 2;
+        const angle4 = ((i + 0.9) / teeth) * Math.PI * 2;
+
+        const rInner = radius - toothDepth;
+        const rOuter = radius + toothDepth;
+
+        if (i === 0) {
+          shape.moveTo(Math.cos(angle1) * rInner, Math.sin(angle1) * rInner);
+        } else {
+          shape.lineTo(Math.cos(angle1) * rInner, Math.sin(angle1) * rInner);
+        }
+        shape.lineTo(Math.cos(angle2) * rOuter, Math.sin(angle2) * rOuter);
+        shape.lineTo(Math.cos(angle3) * rOuter, Math.sin(angle3) * rOuter);
+        shape.lineTo(Math.cos(angle4) * rInner, Math.sin(angle4) * rInner);
+      }
+      shape.closePath();
+
+      // Center Bore hole
+      const holePath = new THREE.Path();
+      holePath.absarc(0, 0, radius * 0.35, 0, Math.PI * 2, true);
+      shape.holes.push(holePath);
+
+      const extrudeSettings = {
+        depth: depth,
+        bevelEnabled: true,
+        bevelSegments: 2,
+        steps: 1,
+        bevelSize: 0.02,
+        bevelThickness: 0.02,
+      };
+
+      const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      geo.center();
+      return geo;
+    };
+
+    // Material Map
+    const getMaterial = (finish: MaterialFinish) => {
+      const isSolid = viewMode === 'solid';
+      switch (finish) {
+        case 'Carbon Fiber PA-CF':
+          return new THREE.MeshStandardMaterial({
+            color: 0x18181b,
+            roughness: 0.45,
+            metalness: 0.65,
+            clippingPlanes: [clipPlane],
+            clipShadows: true,
+          });
+        case 'PLA+ Biopolymer':
+          return new THREE.MeshStandardMaterial({
+            color: 0x2563eb,
+            roughness: 0.3,
+            metalness: 0.2,
+            clippingPlanes: [clipPlane],
+          });
+        case 'Industrial PETG':
+          return new THREE.MeshStandardMaterial({
+            color: 0x059669,
+            roughness: 0.25,
+            metalness: 0.4,
+            clippingPlanes: [clipPlane],
+          });
+        case 'ABS-ESD Heat Resistant':
+          return new THREE.MeshStandardMaterial({
+            color: 0x4f46e5,
+            roughness: 0.35,
+            metalness: 0.5,
+            clippingPlanes: [clipPlane],
+          });
+        case 'TPU 95A Flexible':
+          return new THREE.MeshStandardMaterial({
+            color: 0xd97706,
+            roughness: 0.6,
+            metalness: 0.1,
+            clippingPlanes: [clipPlane],
+          });
+        case '16K Tough Resin':
+          return new THREE.MeshStandardMaterial({
+            color: 0xec4899,
+            roughness: 0.15,
+            metalness: 0.25,
+            clippingPlanes: [clipPlane],
+          });
+        default:
+          return new THREE.MeshStandardMaterial({
+            color: 0x27272a,
+            roughness: 0.4,
+            metalness: 0.5,
+            clippingPlanes: [clipPlane],
+          });
+      }
+    };
+
+    const currentPartMat = getMaterial(activeMaterial);
+
+    // 2. Center Sun Gear
+    const sunGearGeo = createGearGeometry(0.48, 12, 0.4);
+    const sunGearMesh = new THREE.Mesh(sunGearGeo, currentPartMat);
+    sunGearMesh.rotation.x = Math.PI / 2;
+    sunGearMesh.position.y = 0;
+    masterGroup.add(sunGearMesh);
+    sunGearRef.current = sunGearMesh;
+
+    // 3. 3 Orbiting Planet Gears
+    const planetGears: THREE.Group[] = [];
+    const orbitRadius = 0.95;
+    for (let i = 0; i < 3; i++) {
+      const planetGroup = new THREE.Group();
+      const angle = (i / 3) * Math.PI * 2;
+      planetGroup.position.set(Math.cos(angle) * orbitRadius, 0, Math.sin(angle) * orbitRadius);
+
+      const planetGeo = createGearGeometry(0.42, 10, 0.4);
+      const planetMesh = new THREE.Mesh(planetGeo, currentPartMat);
+      planetMesh.rotation.x = Math.PI / 2;
+      planetGroup.add(planetMesh);
+
+      // Center Pin
+      const pinGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.46, 16);
+      const pinMat = new THREE.MeshStandardMaterial({ color: 0x71717a, metalness: 0.9, roughness: 0.2 });
+      const pinMesh = new THREE.Mesh(pinGeo, pinMat);
+      planetGroup.add(pinMesh);
+
+      masterGroup.add(planetGroup);
+      planetGears.push(planetGroup);
+    }
+    planetGearsRef.current = planetGears;
+
+    // 4. Outer Ring Gear Housing
+    const ringGeo = new THREE.CylinderGeometry(1.55, 1.55, 0.45, 48, 1, true);
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: 0x27272a,
       roughness: 0.4,
       metalness: 0.6,
+      side: THREE.DoubleSide,
+      clippingPlanes: [clipPlane],
     });
-    const pedestalMesh = new THREE.Mesh(pedestalGeo, pedestalMat);
-    pedestalMesh.position.y = -1.2;
-    masterGroup.add(pedestalMesh);
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.position.y = 0;
+    masterGroup.add(ringMesh);
 
-    // 4. Floating Wing Shards
-    const shardGeo = new THREE.ConeGeometry(0.12, 0.8, 4);
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const shard = new THREE.Mesh(shardGeo, activeMat);
-      shard.position.set(Math.cos(angle) * 1.2, Math.sin(angle) * 0.4, Math.sin(angle) * 0.5);
-      shard.rotation.z = angle + Math.PI / 2;
-      shard.rotation.x = 0.3;
-      masterGroup.add(shard);
-    }
+    // 5. Toolpath Layer Overlay (Simulated G-Code Extrusion Lines)
+    const toolpathGroup = new THREE.Group();
+    toolpathGroup.visible = false;
+    toolpathGroupRef.current = toolpathGroup;
 
-    // 5. Laser Scan Ring Visualizer
-    const scanRingGeo = new THREE.RingGeometry(1.4, 1.45, 64);
-    const scanRingMat = new THREE.MeshBasicMaterial({
-      color: 0x00f0ff,
+    // Outer Perimeter (Green)
+    const outerPathGeo = new THREE.TorusGeometry(1.5, 0.015, 8, 48);
+    const outerPathMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+    const outerPath = new THREE.Mesh(outerPathGeo, outerPathMat);
+    outerPath.rotation.x = Math.PI / 2;
+    toolpathGroup.add(outerPath);
+
+    // Inner Perimeter (Yellow)
+    const innerPathGeo = new THREE.TorusGeometry(1.46, 0.015, 8, 48);
+    const innerPathMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    const innerPath = new THREE.Mesh(innerPathGeo, innerPathMat);
+    innerPath.rotation.x = Math.PI / 2;
+    toolpathGroup.add(innerPath);
+
+    // Sun gear perimeter
+    const sunPath = new THREE.Mesh(
+      new THREE.TorusGeometry(0.48, 0.015, 8, 32),
+      new THREE.MeshBasicMaterial({ color: 0x10b981 })
+    );
+    sunPath.rotation.x = Math.PI / 2;
+    toolpathGroup.add(sunPath);
+
+    masterGroup.add(toolpathGroup);
+
+    // 6. Laser Slicing Beam Indicator
+    const laserGeo = new THREE.RingGeometry(1.65, 1.7, 64);
+    const laserMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.75,
     });
-    const scanRing = new THREE.Mesh(scanRingGeo, scanRingMat);
-    scanRing.rotation.x = Math.PI / 2;
-    scene.add(scanRing);
+    const laserRing = new THREE.Mesh(laserGeo, laserMat);
+    laserRing.rotation.x = Math.PI / 2;
+    scene.add(laserRing);
 
-    // Floating Dust Particles
-    const particleCount = 200;
-    const particleGeo = new THREE.BufferGeometry();
-    const posArray = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      posArray[i] = (Math.random() - 0.5) * 6;
-      posArray[i + 1] = (Math.random() - 0.5) * 6;
-      posArray[i + 2] = (Math.random() - 0.5) * 6;
-    }
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-
-    const particleMat = new THREE.PointsMaterial({
-      size: 0.025,
-      color: 0xd4af37,
-      transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending,
-    });
-    const particleMesh = new THREE.Points(particleGeo, particleMat);
-    scene.add(particleMesh);
-
-    // Mouse Interaction
+    // Mouse Drag Controls
     let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
+    let prevMousePos = { x: 0, y: 0 };
 
     const onMouseDown = (e: MouseEvent) => {
       isDragging = true;
-      previousMousePosition = { x: e.clientX, y: e.clientY };
+      prevMousePos = { x: e.clientX, y: e.clientY };
     };
 
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      const deltaX = e.clientX - previousMousePosition.x;
-      const deltaY = e.clientY - previousMousePosition.y;
-
-      masterGroup.rotation.y += deltaX * 0.008;
-      masterGroup.rotation.x += deltaY * 0.008;
-
-      previousMousePosition = { x: e.clientX, y: e.clientY };
+      const dx = e.clientX - prevMousePos.x;
+      const dy = e.clientY - prevMousePos.y;
+      masterGroup.rotation.y += dx * 0.008;
+      masterGroup.rotation.x += dy * 0.005;
+      prevMousePos = { x: e.clientX, y: e.clientY };
     };
 
     const onMouseUp = () => {
@@ -224,83 +316,62 @@ export default function StatueViewer({
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
-    // Touch events for mobile
-    let prevTouchX = 0;
-    let prevTouchY = 0;
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        prevTouchX = e.touches[0].clientX;
-        prevTouchY = e.touches[0].clientY;
-      }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        const deltaX = e.touches[0].clientX - prevTouchX;
-        const deltaY = e.touches[0].clientY - prevTouchY;
-        masterGroup.rotation.y += deltaX * 0.01;
-        masterGroup.rotation.x += deltaY * 0.01;
-        prevTouchX = e.touches[0].clientX;
-        prevTouchY = e.touches[0].clientY;
-      }
-    };
-    dom.addEventListener('touchstart', onTouchStart, { passive: true });
-    dom.addEventListener('touchmove', onTouchMove, { passive: true });
-
     // Animation Loop
-    let animationFrameId: number;
+    let animId: number;
     let clock = new THREE.Clock();
 
     const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      const elapsedTime = clock.getElapsedTime();
+      animId = requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+
+      // Kinematic Planetary Motion
+      if (sunGearRef.current) {
+        sunGearRef.current.rotation.z = t * 1.5;
+      }
+      planetGearsRef.current.forEach((pg, idx) => {
+        const orbitAngle = t * 0.5 + (idx / 3) * Math.PI * 2;
+        pg.position.x = Math.cos(orbitAngle) * orbitRadius;
+        pg.position.z = Math.sin(orbitAngle) * orbitRadius;
+        if (pg.children[0]) {
+          pg.children[0].rotation.z = -t * 1.8;
+        }
+      });
 
       if (isAutoRotate && !isDragging) {
-        masterGroup.rotation.y += 0.007;
+        masterGroup.rotation.y += 0.005;
       }
 
-      // Gentle floating levitation
-      masterGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.08;
-
-      // Rotate decorative rings in opposite directions
-      ringMesh1.rotation.z = elapsedTime * 0.3;
-      ringMesh2.rotation.z = -elapsedTime * 0.25;
-
-      // Laser scan ring vertical oscillation
+      // Laser Scanner Animation
       if (showLaserScan) {
-        scanRing.position.y = Math.sin(elapsedTime * 2.2) * 1.4;
-        scanRing.visible = true;
+        laserRing.position.y = Math.sin(t * 1.8) * 0.6 + 0.1;
+        laserRing.visible = true;
       } else {
-        scanRing.visible = false;
+        laserRing.visible = false;
       }
-
-      // Rotate particle cloud
-      particleMesh.rotation.y = elapsedTime * 0.05;
 
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // Resize Handler
-    const handleResize = () => {
-      if (!mount) return;
-      const newWidth = mount.clientWidth;
-      const newHeight = mount.clientHeight || 500;
-      camera.aspect = newWidth / newHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, newHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: nw, height: nh } = entry.contentRect;
+        if (nw > 0 && nh > 0) {
+          camera.aspect = nw / nh;
+          camera.updateProjectionMatrix();
+          renderer.setSize(nw, nh);
+        }
+      }
+    });
+    resizeObserver.observe(mount);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animId);
+      resizeObserver.disconnect();
       dom.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
-      dom.removeEventListener('touchstart', onTouchStart);
-      dom.removeEventListener('touchmove', onTouchMove);
       if (mount && renderer.domElement) {
         mount.removeChild(renderer.domElement);
       }
@@ -308,84 +379,97 @@ export default function StatueViewer({
     };
   }, []);
 
-  // Update Material dynamically
+  // Update Slice Height Clipping Plane
   useEffect(() => {
-    const materials = materialsMapRef.current;
-    const group = meshGroupRef.current;
-    if (!materials || !group) return;
-
-    const selected = materials[activeMaterial];
-    if (!selected) return;
-
-    group.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.geometry instanceof THREE.TorusKnotGeometry) {
-        child.material = selected;
-        child.material.wireframe = isWireframe;
-        child.material.needsUpdate = true;
-      }
-    });
-  }, [activeMaterial, isWireframe]);
-
-  // Update Lighting dynamically
-  useEffect(() => {
-    const lights = lightsGroupRef.current;
-    if (!lights) return;
-
-    const key = lights.children[1] as THREE.DirectionalLight;
-    const rim = lights.children[2] as THREE.PointLight;
-    const fill = lights.children[3] as THREE.DirectionalLight;
-
-    if (lightingMode === 'gold') {
-      key?.color.setHex(0xffe8b4);
-      rim?.color.setHex(0xd4af37);
-      fill?.color.setHex(0xff9900);
-    } else if (lightingMode === 'cyber') {
-      key?.color.setHex(0x00f0ff);
-      rim?.color.setHex(0xff007f);
-      fill?.color.setHex(0x9d4edd);
-    } else if (lightingMode === 'noir') {
-      key?.color.setHex(0xffffff);
-      rim?.color.setHex(0x555555);
-      fill?.color.setHex(0x222222);
+    if (clipPlaneRef.current) {
+      // Range: -0.6 to 0.6
+      const planeConstant = -0.6 + (sliceHeightPercent / 100) * 1.2;
+      clipPlaneRef.current.constant = planeConstant;
     }
-  }, [lightingMode]);
+  }, [sliceHeightPercent]);
+
+  // Update View Mode & Toolpaths
+  useEffect(() => {
+    if (toolpathGroupRef.current) {
+      toolpathGroupRef.current.visible = viewMode === 'toolpath';
+    }
+
+    if (masterGroupRef.current) {
+      masterGroupRef.current.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          const mat = child.material as THREE.MeshStandardMaterial;
+          if (viewMode === 'wireframe') {
+            mat.wireframe = true;
+          } else {
+            mat.wireframe = false;
+          }
+        }
+      });
+    }
+  }, [viewMode]);
 
   return (
-    <div className={`relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-obsidian-850 to-obsidian-950 border border-obsidian-700 shadow-2xl ${className}`}>
-      {/* 3D Canvas Mount */}
+    <div
+      className={`relative w-full rounded-3xl overflow-hidden bg-neutral-950 border border-neutral-800 select-none shadow-2xl ${className}`}
+    >
+      {/* 3D Canvas */}
       <div
         ref={mountRef}
-        style={{ height }}
+        style={{ height, minHeight: '480px' }}
         className="w-full cursor-grab active:cursor-grabbing relative z-10"
       />
 
-      {/* Top Overlay Badge */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-obsidian-900/80 backdrop-blur-md border border-gold-500/30 text-xs font-mono text-gold-400">
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-        <span>16K SLA RESIN REAL-TIME TURNTABLE</span>
+      {/* Top Telemetry Overlay */}
+      <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-xs font-mono text-neutral-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="lowercase">kinematic assembly · planetary reducer (5:1)</span>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/10 text-xs font-mono text-neutral-400">
+          <span>nozzle: 0.40mm</span>
+          <span>•</span>
+          <span>slice: {sliceHeightPercent}%</span>
+        </div>
       </div>
 
-      {/* Control Bar Overlay */}
-      <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-obsidian-900/85 backdrop-blur-xl border border-obsidian-700">
-        {/* Material Presets */}
+      {/* Layer Slicing Plane Slider */}
+      <div className="absolute top-16 left-4 z-20 bg-black/75 backdrop-blur-md border border-white/10 p-2.5 rounded-2xl flex flex-col items-center gap-1.5 text-white">
+        <span className="text-[10px] font-mono text-neutral-400">layer z</span>
+        <input
+          type="range"
+          min={5}
+          max={100}
+          value={sliceHeightPercent}
+          onChange={(e) => setSliceHeightPercent(Number(e.target.value))}
+          className="h-24 -rotate-90 w-24 my-6 accent-emerald-400 cursor-pointer"
+        />
+        <span className="text-[10px] font-mono text-emerald-400 font-bold">
+          {sliceHeightPercent}%
+        </span>
+      </div>
+
+      {/* Bottom Control Bar */}
+      <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-black/80 backdrop-blur-xl border border-white/10">
+        {/* Material Selection Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
           {(
             [
-              '24K Gilded Gold Leaf',
-              'Obsidian Onyx',
-              'Antique Bronze Patina',
-              'Iridescent Cyber Chrome',
-              'Alabaster White SLA',
-              'Raw Translucent Resin',
+              'Carbon Fiber PA-CF',
+              'PLA+ Biopolymer',
+              'Industrial PETG',
+              'TPU 95A Flexible',
+              'ABS-ESD Heat Resistant',
+              '16K Tough Resin',
             ] as MaterialFinish[]
           ).map((mat) => (
             <button
               key={mat}
               onClick={() => setActiveMaterial(mat)}
-              className={`px-2.5 py-1 text-xs rounded-lg transition-all duration-200 whitespace-nowrap font-medium ${
+              className={`px-3 py-1.5 text-xs rounded-full transition-all whitespace-nowrap lowercase font-medium ${
                 activeMaterial === mat
-                  ? 'bg-gold-500 text-obsidian-950 shadow-gold-glow font-semibold scale-105'
-                  : 'bg-obsidian-800/80 text-titanium-300 hover:text-white hover:bg-obsidian-700 border border-obsidian-700'
+                  ? 'bg-white text-black font-semibold shadow-md'
+                  : 'bg-neutral-900 text-neutral-400 hover:text-white hover:bg-neutral-800 border border-neutral-800'
               }`}
             >
               {mat}
@@ -393,60 +477,37 @@ export default function StatueViewer({
           ))}
         </div>
 
-        {/* Studio Lighting & Mode Controls */}
+        {/* View Mode & Slicer Toggles */}
         <div className="flex items-center gap-2">
-          {/* Lighting Mode Selector */}
-          <div className="flex items-center gap-1 bg-obsidian-800 p-1 rounded-lg border border-obsidian-700">
+          {/* Solid vs Toolpath vs Wireframe */}
+          {(
+            [
+              { id: 'solid', label: 'solid' },
+              { id: 'toolpath', label: 'toolpath' },
+              { id: 'wireframe', label: 'wireframe' },
+            ] as const
+          ).map((mode) => (
             <button
-              onClick={() => setLightingMode('gold')}
-              title="Warm Gold Studio Light"
-              className={`p-1.5 rounded text-xs transition-colors ${
-                lightingMode === 'gold' ? 'bg-gold-500 text-obsidian-950 font-bold' : 'text-gold-400 hover:text-white'
+              key={mode.id}
+              onClick={() => setViewMode(mode.id)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-mono lowercase transition-colors ${
+                viewMode === mode.id
+                  ? 'bg-emerald-500 text-black font-bold'
+                  : 'bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white'
               }`}
             >
-              <Sun className="w-3.5 h-3.5" />
+              {mode.label}
             </button>
-            <button
-              onClick={() => setLightingMode('cyber')}
-              title="Cyberpunk Neon Light"
-              className={`p-1.5 rounded text-xs transition-colors ${
-                lightingMode === 'cyber' ? 'bg-cyan-500 text-obsidian-950 font-bold' : 'text-cyan-400 hover:text-white'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setLightingMode('noir')}
-              title="Museum Chiaroscuro Noir"
-              className={`p-1.5 rounded text-xs transition-colors ${
-                lightingMode === 'noir' ? 'bg-white text-obsidian-950 font-bold' : 'text-titanium-400 hover:text-white'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Wireframe Toggle */}
-          <button
-            onClick={() => setIsWireframe(!isWireframe)}
-            title="Toggle 16K Mesh Wireframe"
-            className={`p-1.5 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
-              isWireframe
-                ? 'bg-gold-500/20 border-gold-400 text-gold-300'
-                : 'bg-obsidian-800 border-obsidian-700 text-titanium-400 hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-          </button>
+          ))}
 
           {/* Laser Scan Toggle */}
           <button
             onClick={() => setShowLaserScan(!showLaserScan)}
-            title="Toggle SLA Laser Layer Scan"
-            className={`p-1.5 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
+            title="Toggle Laser Scan Ring"
+            className={`p-2 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
               showLaserScan
-                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
-                : 'bg-obsidian-800 border-obsidian-700 text-titanium-400 hover:text-white'
+                ? 'bg-white text-black border-white'
+                : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -456,10 +517,10 @@ export default function StatueViewer({
           <button
             onClick={() => setIsAutoRotate(!isAutoRotate)}
             title="Toggle Auto Rotation"
-            className={`p-1.5 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
+            className={`p-2 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
               isAutoRotate
-                ? 'bg-gold-500/20 border-gold-400 text-gold-300'
-                : 'bg-obsidian-800 border-obsidian-700 text-titanium-400 hover:text-white'
+                ? 'bg-white text-black border-white'
+                : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
             }`}
           >
             <RotateCw className={`w-3.5 h-3.5 ${isAutoRotate ? 'animate-spin-slow' : ''}`} />
